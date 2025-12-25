@@ -1,4 +1,4 @@
-# QA Deliverables - Resume Shortlisting AI Agent
+# QA Deliverables - Resha (Resume Shortlisting AI Agent)
 
 This folder contains the Quality Assurance deliverables for the Start of Task B.
 
