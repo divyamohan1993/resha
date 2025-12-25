@@ -1,0 +1,92 @@
+{
+  "shortlist_response": {
+    "decision": "Shortlisted",
+    "match_percentage": 98.0,
+    "reasoning": {
+      "skills_analysis": "The candidate possesses all required technical skills, including expert-level Python, comprehensive AWS service knowledge (EC2, S3, Lambda, ECS, EKS), and proficiency in Docker and Kubernetes. They also meet the database requirements (SQL and NoSQL) and CI/CD expertise.",
+      "experience_analysis": "With over 7 years of experience, the candidate exceeds the 5-year requirement. Their background in building microservices and implementing containerization strategies directly aligns with the JD.",
+      "education_analysis": "The candidate holds a Master of Science in Computer Science from MIT, which fulfills the 'Nice to Have' educational requirement.",
+      "projects_analysis": "Relevant projects include open-source contributions to Kubernetes and Docker, as well as a practical ML-based resume screening tool, demonstrating both community involvement and technical breadth.",
+      "role_fit_analysis": "The candidate is an exceptional fit, meeting 100% of the mandatory requirements and all of the 'Nice to Have' criteria."
+    },
+    "matched_requirements": [
+      "5+ years of experience with Python",
+      "Strong experience with AWS services (EC2, S3, Lambda, ECS)",
+      "Proficiency in Docker and Kubernetes",
+      "Experience with CI/CD pipelines",
+      "Knowledge of RESTful API design",
+      "Familiarity with SQL and NoSQL databases",
+      "Experience with machine learning frameworks",
+      "Contributions to open source projects",
+      "Master's degree in Computer Science"
+    ],
+    "missing_requirements": [],
+    "summary": "John Smith is a highly qualified candidate who exceeds the minimum requirements for the Senior Python Developer role. He possesses the exact technical stack requested, has relevant senior-level experience, and meets all preferred qualifications including a Master's degree and open-source contributions.",
+    "agent_metadata": {
+      "model": "gemini-3-flash-preview",
+      "threshold": 70,
+      "system_instruction_version": "1.0"
+    }
+  },
+  "reasoning_loop": {
+    "stage_1_input_processing": {
+      "resume_length": 1318,
+      "jd_length": 718,
+      "resume_preview": "\nJohn Smith\nSenior Software Engineer\nEmail: john.smith@example.com | Phone: (555) 123-4567\n\nPROFESSIONAL SUMMARY\nHighly skilled software engineer with 7+ years of experience in Python, AWS, Docker, \na...",
+      "jd_preview": "\nSenior Python Developer - Cloud Infrastructure\n\nAbout the Role:\nWe are seeking a Senior Python Developer to join our cloud infrastructure team. \nYou will be responsible for building and maintaining s..."
+    },
+    "stage_2_prompt_construction": {
+      "system_instruction": "You are a Resume Shortlisting AI. You must analyze skills, experience, projects, education, and role fit. If the resume closely matches 70% or more of the JD requirements, output 'Shortlisted'. Otherw...",
+      "evaluation_criteria": [
+        "skills_analysis",
+        "experience_analysis",
+        "education_analysis",
+        "projects_analysis",
+        "role_fit_analysis"
+      ],
+      "threshold": "70% match required for Shortlisted"
+    },
+    "stage_3_llm_inference": {
+      "model_used": "gemini-3-flash-preview",
+      "api_status": "success",
+      "raw_evaluation": {
+        "decision": "Shortlisted",
+        "match_percentage": 100,
+        "reasoning": {
+          "skills_analysis": "The candidate possesses all required technical skills, including Python, AWS (EC2, S3, Lambda, ECS), Docker, Kubernetes, and CI/CD. They also have proficiency in both SQL and NoSQL databases as requested.",
+          "experience_analysis": "With over 7 years of experience, the candidate exceeds the 5-year requirement. Their background in building microservices and automating deployments directly aligns with the JD.",
+          "education_analysis": "The candidate holds a Master's degree in Computer Science from MIT, which fulfills the 'Nice to Have' educational requirement.",
+          "projects_analysis": "Relevant projects include open-source contributions to Kubernetes and Docker, as well as practical ML applications, demonstrating high-level expertise in cloud infrastructure.",
+          "role_fit_analysis": "The candidate is an exceptional fit, meeting 100% of the mandatory requirements and all of the preferred qualifications."
+        },
+        "matched_requirements": [
+          "5+ years of experience with Python",
+          "Strong experience with AWS services (EC2, S3, Lambda, ECS)",
+          "Proficiency in Docker and Kubernetes",
+          "Experience with CI/CD pipelines",
+          "Knowledge of RESTful API design",
+          "Familiarity with SQL and NoSQL databases",
+          "Experience with machine learning frameworks",
+          "Contributions to open source projects",
+          "Master's degree in Computer Science"
+        ],
+        "missing_requirements": [],
+        "summary": "The candidate is highly qualified, exceeding the minimum years of experience and possessing all required and preferred skills, including advanced cloud infrastructure knowledge and a Master's degree.",
+        "agent_metadata": {
+          "model": "gemini-3-flash-preview",
+          "threshold": 70,
+          "system_instruction_version": "1.0"
+        }
+      }
+    },
+    "stage_4_decision_output": {
+      "final_decision": "Shortlisted",
+      "match_percentage": 100,
+      "summary": "The candidate is highly qualified, exceeding the minimum years of experience and possessing all required and preferred skills, including advanced cloud infrastructure knowledge and a Master's degree."
+    }
+  },
+  "input": {
+    "resume_text": "\nJohn Smith\nSenior Software Engineer\nEmail: john.smith@example.com | Phone: (555) 123-4567\n\nPROFESSIONAL SUMMARY\nHighly skilled software engineer with 7+ years of experience in Python, AWS, Docker, \na...",
+    "job_description": "\nSenior Python Developer - Cloud Infrastructure\n\nAbout the Role:\nWe are seeking a Senior Python Developer to join our cloud infrastructure team. \nYou will be responsible for building and maintaining s..."
+  }
+}

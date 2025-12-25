@@ -1,0 +1,17 @@
+.env
+venv/
+venv_wsl/
+__pycache__/
+*.pyc
+*.log
+logs/
+coverage/
+htmlcov/
+.pytest_cache/
+db_data/
+audit.db
+.DS_Store
+.vscode/
+.idea/
+deliverables/QA/POSTMAN_COLLECTION.json
+.agent/

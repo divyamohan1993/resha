@@ -1,0 +1,26 @@
+{
+  "decision": "Shortlisted",
+  "match_percentage": 100.0,
+  "reasoning": {
+    "skills_analysis": "The candidate possesses all the required skills: Python, AWS, Docker, Kubernetes, SQL, and REST APIs. Additionally, they have experience with Django.",
+    "experience_analysis": "The candidate has a total of 8 years of relevant experience (5 years as a Senior Python Dev and 3 years as a Backend Lead), which exceeds the 5+ years requirement.",
+    "education_analysis": "While specific degree details are not provided in the resume snippet, the professional experience and seniority level align with the expectations for a Senior Developer role.",
+    "projects_analysis": "The candidate has demonstrated experience building cloud-native applications and managing AWS infrastructure, which directly aligns with the JD's focus on AWS, Docker, and Kubernetes.",
+    "role_fit_analysis": "The candidate is an ideal fit, meeting 100% of the technical and experience-based requirements for the Senior Python Developer position."
+  },
+  "matched_requirements": [
+    "5+ years Python experience",
+    "AWS",
+    "Docker",
+    "Kubernetes",
+    "SQL",
+    "REST APIs"
+  ],
+  "missing_requirements": [],
+  "summary": "The candidate perfectly matches all criteria specified in the job description, including the exact tech stack and the required years of experience in a senior capacity.",
+  "agent_metadata": {
+    "model": "gemini-3-flash-preview",
+    "threshold": 70,
+    "system_instruction_version": "1.0"
+  }
+}

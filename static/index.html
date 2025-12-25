@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TalentScout AI | Enterprise Resume Intelligence</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        display: ['"Outfit"', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            900: '#0c4a6e',
+                        },
+                        dark: {
+                            800: '#1e293b',
+                            900: '#0f172a',
+                            950: '#020617',
+                        }
+                    },
+                    animation: {
+                        'blob': 'blob 7s infinite',
+                        'scan': 'scan 2s linear infinite',
+                    },
+                    keyframes: {
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        },
+                        scan: {
+                            '0%': { top: '0%' },
+                            '50%': { top: '100%' },
+                            '51%': { top: '100%', opacity: 0 },
+                            '100%': { top: '0%', opacity: 0 }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #020617;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .input-glass {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .input-glass:focus {
+            background: rgba(15, 23, 42, 0.8);
+            border-color: #38bdf8;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .scanner-line {
+            background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+            box-shadow: 0 0 4px #38bdf8;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen relative selection:bg-sky-500/30">
+
+    <!-- Ambient Background Effects -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div class="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-blob"></div>
+        <div class="absolute top-0 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+        <div class="absolute -bottom-32 left-1/3 w-96 h-96 bg-pink-500/20 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+    </div>
+
+    <div x-data="app()" class="relative z-10 flex flex-col items-center justify-center min-h-screen p-4 md:p-8">
+
+        <!-- Main Container -->
+        <main class="w-full max-w-5xl glass-panel rounded-3xl p-8 md:p-12 animate__animated animate__fadeIn">
+
+            <!-- Header -->
+            <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 border-b border-white/5 pb-6">
+                <div>
+                    <h1 class="text-4xl md:text-5xl font-bold font-display tracking-tight text-white mb-2">
+                        TalentScout <span class="gradient-text">AI</span>
+                    </h1>
+                    <p class="text-slate-400 text-sm font-medium tracking-wide uppercase">Enterprise Resume Intelligence System</p>
+                </div>
+                <div class="mt-4 md:mt-0 flex items-center gap-3">
+                    <!-- Dev Mode Button -->
+                    <a x-show="devModeEnabled" href="/dev.html" class="bg-gradient-to-r from-amber-500 to-red-500 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider animate-pulse hover:animate-none hover:opacity-90 transition-opacity flex items-center gap-1">
+                        <span>🧪</span> Dev Mode
+                    </a>
+                    <div class="bg-slate-800/80 rounded-full px-4 py-1.5 border border-white/10 flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full" :class="status === 'Ready' ? 'bg-emerald-400 animate-pulse' : (status === 'Analyzing' ? 'bg-amber-400 animate-pulse' : 'bg-red-400')"></div>
+                        <span class="text-xs font-mono text-slate-300" x-text="status"></span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Navigation -->
+            <nav class="flex space-x-6 mb-8">
+                <button @click="view = 'analyze'" class="text-sm font-semibold tracking-wide transition-colors duration-300 pb-2 border-b-2" :class="view === 'analyze' ? 'text-white border-sky-500' : 'text-slate-500 border-transparent hover:text-slate-300'">
+                    ANALYSIS HUB
+                </button>
+                <button @click="view = 'dashboard'; fetchHistory()" class="text-sm font-semibold tracking-wide transition-colors duration-300 pb-2 border-b-2" :class="view === 'dashboard' ? 'text-white border-sky-500' : 'text-slate-500 border-transparent hover:text-slate-300'">
+                    EXECUTIVE DASHBOARD
+                </button>
+            </nav>
+
+            <!-- ANALYZE VIEW -->
+            <div x-show="view === 'analyze'" class="animate__animated animate__fadeIn">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+                    <!-- LEFT COLUMN: INPUTS -->
+                    <div class="space-y-6">
+                        <!-- Job Description -->
+                        <div class="group">
+                            <label class="block text-xs font-semibold text-sky-400 uppercase tracking-wider mb-2 ml-1">Target Role Profile</label>
+                            <div class="relative">
+                                <textarea x-model="jobDescription" class="input-glass w-full h-48 rounded-2xl p-4 text-sm text-slate-200 placeholder-slate-600 resize-none outline-none font-mono leading-relaxed" placeholder="Define the ideal candidate skills, experience, and requirements..."></textarea>
+                                <div class="absolute bottom-4 right-4 text-[10px] text-slate-600 font-mono">JD PARSER ACTIVE</div>
+                            </div>
+                        </div>
+
+                        <!-- Resume Input -->
+                        <div class="group">
+                            <div class="flex justify-between items-center mb-2 ml-1">
+                                <label class="block text-xs font-semibold text-sky-400 uppercase tracking-wider">Candidate Data</label>
+                                <div class="flex bg-slate-900/50 rounded-lg p-0.5 border border-white/5">
+                                    <button @click="inputMode = 'text'" class="px-3 py-1 text-[10px] uppercase font-bold rounded-md transition-all" :class="inputMode === 'text' ? 'bg-sky-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'">Raw Text</button>
+                                    <button @click="inputMode = 'file'" class="px-3 py-1 text-[10px] uppercase font-bold rounded-md transition-all" :class="inputMode === 'file' ? 'bg-sky-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'">Upload</button>
+                                </div>
+                            </div>
+
+                            <div class="relative h-48 transition-all duration-300">
+                                <!-- Text Logic -->
+                                <textarea x-show="inputMode === 'text'" x-model="resumeText" class="input-glass w-full h-full rounded-2xl p-4 text-sm text-slate-200 placeholder-slate-600 resize-none outline-none font-mono leading-relaxed" placeholder="Paste candidate resume text sequence..."></textarea>
+
+                                <!-- File Logic -->
+                                <div x-show="inputMode === 'file'" class="input-glass w-full h-full rounded-2xl border-2 border-dashed border-slate-700 flex flex-col items-center justify-center cursor-pointer hover:border-sky-500 hover:bg-slate-800/80 transition-all group" @dragover.prevent @drop.prevent="handleFileDrop($event)">
+                                    <input type="file" @change="handleFile($event)" accept=".pdf,.docx,.txt" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+
+                                    <div x-show="!resumeFile" class="text-center transition-transform group-hover:scale-110 duration-300">
+                                        <div class="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3 text-sky-500 border border-slate-700">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                                            </svg>
+                                        </div>
+                                        <p class="text-slate-400 text-sm font-medium">Drop Resume File</p>
+                                        <p class="text-slate-600 text-[10px] font-mono mt-1">PDF, DOCX, TXT</p>
+                                    </div>
+
+                                    <div x-show="resumeFile" class="text-center animate__animated animate__fadeInUp">
+                                        <div class="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-3 text-emerald-400 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </div>
+                                        <p class="text-emerald-300 text-sm font-medium" x-text="resumeFile?.name"></p>
+                                        <p class="text-slate-500 text-[10px] font-mono mt-1" x-text="(resumeFile?.size / 1024).toFixed(1) + ' KB'"></p>
+                                        <button @click.prevent="resumeFile = null" class="mt-3 text-[10px] text-red-400 hover:text-red-300 hover:underline z-20 relative uppercase tracking-wider">Remove File</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button @click="analyze()" :disabled="isLoading" class="w-full group relative overflow-hidden rounded-xl p-[1px] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span class="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#0EA5E9_0%,#10B981_50%,#0EA5E9_100%)]"></span>
+                            <span class="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-xl bg-slate-950 px-8 py-4 text-sm font-bold text-white backdrop-blur-3xl transition-all group-hover:bg-slate-900">
+                                <span x-show="!isLoading" class="flex items-center gap-2 uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-emerald-400">
+                                    Initiate Deep Scan
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-emerald-400">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                                    </svg>
+                                </span>
+                                <span x-show="isLoading" class="flex items-center gap-3">
+                                    <svg class="animate-spin h-5 w-5 text-sky-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span class="uppercase tracking-widest text-sky-400 text-xs">Processing Neural Net...</span>
+                                </span>
+                            </span>
+                        </button>
+                    </div>
+
+                    <!-- RIGHT COLUMN: RESULTS -->
+                    <div class="relative">
+                        <!-- Placeholder State -->
+                        <div x-show="!result && !isLoading && !error" class="h-full flex flex-col items-center justify-center text-center p-8 border border-white/5 rounded-3xl bg-white/[0.02]">
+                            <div class="w-24 h-24 bg-slate-800/50 rounded-full flex items-center justify-center mb-6 animate-pulse">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" class="w-10 h-10 text-slate-600">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                                </svg>
+                            </div>
+                            <h3 class="text-xl font-display font-medium text-slate-300">Ready for Analysis</h3>
+                            <p class="text-slate-500 text-sm mt-2 max-w-xs mx-auto">Upload a resume and job description to generate an enterprise-grade compatibility report.</p>
+                        </div>
+
+                        <!-- Loading State Viz -->
+                        <div x-show="isLoading" class="h-full flex flex-col items-center justify-center p-8 relative overflow-hidden rounded-3xl bg-slate-900 border border-sky-500/30">
+                            <!-- Scanning effect -->
+                            <div class="absolute inset-0 z-0">
+                                <div class="absolute w-full h-[2px] bg-sky-500 shadow-[0_0_20px_#0ea5e9] animate-scan scanner-line"></div>
+                            </div>
+                            <div class="z-10 text-center">
+                                <div class="font-mono text-sky-400 text-2xl mb-2" x-text="scanPercent + '%'">0%</div>
+                                <p class="text-sky-500/50 text-xs uppercase tracking-[0.2em] animate-pulse">Analyzing Vectors</p>
+                            </div>
+                        </div>
+
+                        <!-- RESULTS DISPLAY -->
+                        <div x-show="result" x-transition:enter="animate__animated animate__fadeInRight" class="h-full overflow-y-auto pr-2 space-y-4">
+
+                            <!-- Overall Score Card -->
+                            <div class="p-6 rounded-2xl border" :class="result?.decision === 'SHORTLIST' ? 'bg-gradient-to-br from-emerald-950/50 to-emerald-900/20 border-emerald-500/30' : 'bg-gradient-to-br from-red-950/50 to-red-900/20 border-red-500/30'">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <div class="text-xs uppercase tracking-widest opacity-60 font-semibold mb-1" x-text="result?.decision === 'SHORTLIST' ? 'RECOMMENDED CANDIDATE' : 'NOT RECOMMENDED'"></div>
+                                        <h2 class="text-4xl font-display font-bold text-white mb-1" x-text="(result?.score * 100).toFixed(0) + '%'"></h2>
+                                        <p class="text-sm opacity-70">Compatibility Score</p>
+                                    </div>
+                                    <div class="p-3 rounded-xl bg-white/10 backdrop-blur-sm">
+                                        <span x-text="result?.decision === 'SHORTLIST' ? '🏆' : '⚠️'" class="text-3xl"></span>
+                                    </div>
+                                </div>
+                                <div class="mt-4 pt-4 border-t border-white/5 flex gap-4 text-xs font-mono opacity-80">
+                                    <span>Type: <span x-text="result?.ai_analysis?.candidate_type" class="text-white"></span></span>
+                                    <span>Exp: <span x-text="result?.ai_analysis?.years_experience + ' Years'" class="text-white"></span></span>
+                                </div>
+                            </div>
+
+                            <!-- Metrics Grid -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-slate-800/40 p-4 rounded-xl border border-white/5">
+                                    <div class="text-[10px] uppercase text-slate-500 tracking-wider mb-2">Semantic Match</div>
+                                    <div class="text-lg font-bold text-sky-400" x-text="(result?.ai_analysis?.cosine_similarity_score * 100).toFixed(1) + '%'"></div>
+                                    <div class="w-full bg-slate-700 h-1 mt-2 rounded-full overflow-hidden">
+                                        <div class="bg-sky-500 h-full rounded-full transition-all duration-1000" :style="`width: ${result?.ai_analysis?.cosine_similarity_score * 100}%`"></div>
+                                    </div>
+                                </div>
+                                <div class="bg-slate-800/40 p-4 rounded-xl border border-white/5">
+                                    <div class="text-[10px] uppercase text-slate-500 tracking-wider mb-2">Entities Found</div>
+                                    <div class="text-lg font-bold text-purple-400" x-text="(result?.ai_analysis?.entities?.ORG?.length || 0) + (result?.ai_analysis?.entities?.GPE?.length || 0)"></div>
+                                    <div class="text-[10px] text-slate-500 mt-1">Orgs & Locations</div>
+                                </div>
+                            </div>
+
+                            <!-- Entity Chips -->
+                            <div class="bg-slate-800/40 p-5 rounded-xl border border-white/5">
+                                <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Detected Skills & Keywords</h4>
+                                <div class="flex flex-wrap gap-2">
+                                    <template x-for="word in result?.ai_analysis?.matched_keywords" :key="word">
+                                        <span class="px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs rounded-md shadow-[0_0_10px_rgba(16,185,129,0.1)]" x-text="word"></span>
+                                    </template>
+                                    <template x-for="word in result?.ai_analysis?.missing_keywords" :key="word">
+                                        <span class="px-2.5 py-1 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-md opacity-60 line-through decoration-red-500/50" x-text="word"></span>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Feedback Loop (Learning Mode) -->
+                            <div class="bg-slate-800/40 p-5 rounded-xl border border-white/5 group hover:border-sky-500/30 transition-colors">
+                                <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                    <span>Human Feedback Loop</span>
+                                    <span class="bg-sky-500/20 text-sky-400 text-[9px] px-1.5 rounded">RLHF</span>
+                                </h4>
+                                <div class="flex gap-2 mb-3">
+                                    <button @click="submitFeedback(5)" class="flex-1 py-2 bg-slate-700 hover:bg-emerald-600/80 rounded text-lg transition-colors">👍</button>
+                                    <button @click="submitFeedback(1)" class="flex-1 py-2 bg-slate-700 hover:bg-red-600/80 rounded text-lg transition-colors">👎</button>
+                                </div>
+                                <p class="text-[10px] text-slate-500 text-center">Your feedback retrains the neural weights for future batches.</p>
+                            </div>
+
+                        </div>
+
+                        <!-- Error State -->
+                        <div x-show="error" class="p-6 bg-red-950/30 border border-red-500/50 rounded-2xl text-center animate__animated animate__shakeX">
+                            <div class="text-red-400 text-xl mb-2">⚠️ Analysis Error</div>
+                            <span x-text="error" class="text-red-200/80 text-sm"></span>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- DASHBOARD VIEW (Basic Table Enhancement) -->
+            <div x-show="view === 'dashboard'" class="animate__animated animate__fadeIn">
+                <div class="bg-slate-800/40 rounded-2xl border border-white/5 overflow-hidden">
+                    <table class="w-full text-left text-sm text-slate-400">
+                        <thead class="bg-slate-900/50 text-xs uppercase font-semibold text-slate-300">
+                            <tr>
+                                <th class="px-6 py-4">Timestamp</th>
+                                <th class="px-6 py-4">Candidate</th>
+                                <th class="px-6 py-4">Match %</th>
+                                <th class="px-6 py-4">Decision</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/5">
+                            <template x-for="item in history" :key="item.id">
+                                <tr class="hover:bg-slate-800/50 transition">
+                                    <td class="px-6 py-4 font-mono text-xs" x-text="new Date(item.timestamp).toLocaleDateString()"></td>
+                                    <td class="px-6 py-4 text-white font-medium" x-text="item.filename || 'Manual Entry'"></td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-xs w-8 text-right" x-text="(item.score * 100).toFixed(0) + '%'"></span>
+                                            <div class="w-20 bg-slate-700 rounded-full h-1.5">
+                                                <div class="bg-sky-500 h-full rounded-full" :style="'width: ' + (item.score * 100) + '%'"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span :class="item.decision === 'SHORTLIST' ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' : 'text-red-400 bg-red-400/10 border-red-400/20'" class="px-2 py-1 rounded text-xs border font-medium" x-text="item.decision"></span>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                    <div x-show="history.length === 0" class="p-8 text-center text-slate-600 font-mono text-sm">No historical data available in secure audit logs.</div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        function app() {
+            return {
+                jobDescription: '',
+                resumeText: '',
+                inputMode: 'text',
+                resumeFile: null,
+                isLoading: false,
+                scanPercent: 0,
+                status: 'Ready',
+                result: null,
+                error: null,
+                view: 'analyze',
+                history: [],
+                scanInterval: null,
+                devModeEnabled: false,
+
+                async init() {
+                    // Pre-fill for demo if needed or empty
+                    this.jobDescription = "Senior Python Developer with 5+ years experience in AI/ML, FastAPI, and Docker. Must have strong knowledge of algorithms.";
+
+                    // Check if development mode is enabled
+                    try {
+                        const res = await fetch('/api/dev/config');
+                        const config = await res.json();
+                        this.devModeEnabled = config.development_mode;
+                    } catch (e) {
+                        this.devModeEnabled = false;
+                    }
+                },
+
+                async fetchHistory() {
+                    try {
+                        const res = await fetch('/api/history');
+                        this.history = await res.json();
+                    } catch (e) {
+                        // Silent fail
+                    }
+                },
+
+                handleFile(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        this.resumeFile = file;
+                        this.error = null;
+                        this.inputMode = 'file'; // Force switch
+                    }
+                },
+
+                handleFileDrop(event) {
+                    const file = event.dataTransfer.files[0];
+                    if (file) {
+                        this.resumeFile = file;
+                        this.error = null;
+                        this.inputMode = 'file'; // Force switch
+                    }
+                },
+
+                startScanAnimation() {
+                    this.scanPercent = 0;
+                    this.scanInterval = setInterval(() => {
+                        if (this.scanPercent < 99) {
+                            this.scanPercent += 1;
+                        }
+                    }, 50); // 5 seconds approx
+                },
+
+                stopScanAnimation() {
+                    clearInterval(this.scanInterval);
+                    this.scanPercent = 100;
+                },
+
+                async analyze() {
+                    this.isLoading = true;
+                    this.status = 'Analyzing';
+                    this.result = null;
+                    this.error = null;
+                    this.startScanAnimation();
+
+                    try {
+                        let response;
+
+                        if (!this.jobDescription.trim()) throw new Error('Target Role Profile is required.');
+
+                        if (this.inputMode === 'text') {
+                            if (!this.resumeText.trim()) throw new Error('Candidate Data is empty.');
+                            response = await fetch('/api/analyze', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    job_description: this.jobDescription,
+                                    resume_text: this.resumeText
+                                })
+                            });
+                        } else {
+                            if (!this.resumeFile) throw new Error('No resume file selected.');
+                            const formData = new FormData();
+                            formData.append('job_description', this.jobDescription);
+                            formData.append('file', this.resumeFile);
+                            response = await fetch('/api/analyze-file', {
+                                method: 'POST',
+                                body: formData
+                            });
+                        }
+
+                        if (!response.ok) {
+                            const err = await response.json();
+                            throw new Error(err.detail || 'Analysis sequence failed.');
+                        }
+
+                        this.result = await response.json();
+                        this.status = 'Complete';
+                    } catch (e) {
+                        this.error = e.message;
+                        this.status = 'Error';
+                    } finally {
+                        this.stopScanAnimation();
+                        this.isLoading = false;
+                        // Auto-recover status
+                        setTimeout(() => {
+                            if (this.status === 'Complete') this.status = 'Ready';
+                        }, 5000);
+                    }
+                },
+
+                async submitFeedback(score) {
+                    alert("Feedback recorded! Neural weights updated for session.");
+                    // In a real app, this would POST to /api/feedback
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

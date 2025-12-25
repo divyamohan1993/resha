@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TalentScout AI | Development Mode - Chain of Thought</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Outfit"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            900: '#0c4a6e',
+                        },
+                        dark: {
+                            800: '#1e293b',
+                            900: '#0f172a',
+                            950: '#020617',
+                        },
+                        terminal: {
+                            bg: '#0d1117',
+                            text: '#c9d1d9',
+                            green: '#3fb950',
+                            yellow: '#d29922',
+                            red: '#f85149',
+                            blue: '#58a6ff',
+                            purple: '#bc8cff'
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'typing': 'typing 0.5s steps(30) forwards',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #020617;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .input-glass {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .input-glass:focus {
+            background: rgba(15, 23, 42, 0.8);
+            border-color: #38bdf8;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+        }
+
+        /* Terminal Styling */
+        .terminal {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .terminal-header {
+            background: linear-gradient(180deg, #21262d 0%, #161b22 100%);
+            border-bottom: 1px solid #30363d;
+        }
+
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .step-line {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .dev-badge {
+            background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+            animation: pulse 2s infinite;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        .result-card {
+            transition: all 0.3s ease;
+        }
+
+        .result-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+
+<body class="min-h-screen relative selection:bg-sky-500/30">
+
+    <!-- Ambient Background -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div class="absolute top-0 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-pulse-slow"></div>
+        <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-pulse-slow" style="animation-delay: 1s;"></div>
+    </div>
+
+    <div x-data="devApp()" x-init="init()" class="relative z-10 flex flex-col min-h-screen p-4 md:p-8">
+
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+            <div>
+                <div class="flex items-center gap-4">
+                    <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-white">
+                        TalentScout <span class="gradient-text">AI</span>
+                    </h1>
+                    <span class="dev-badge text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                        Dev Mode
+                    </span>
+                </div>
+                <p class="text-slate-400 text-sm mt-2">Chain-of-Thought Reasoning Display | Onboard AI + Gemini</p>
+            </div>
+            <div class="mt-4 md:mt-0 flex items-center gap-4">
+                <a href="/" class="text-slate-400 hover:text-white text-sm transition-colors">← Back to Main</a>
+                <div class="bg-slate-800/80 rounded-full px-4 py-1.5 border border-white/10 flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full" :class="devModeEnabled ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'"></div>
+                    <span class="text-xs font-mono text-slate-300" x-text="devModeEnabled ? 'DEV MODE ON' : 'DEV MODE OFF'"></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Grid -->
+        <main class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- LEFT: Input Panel -->
+            <div class="glass-panel rounded-2xl p-6 flex flex-col">
+                <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <span class="text-sky-400">📝</span> Input Data
+                </h2>
+
+                <!-- Job Description -->
+                <div class="mb-4">
+                    <label class="block text-xs font-semibold text-sky-400 uppercase tracking-wider mb-2">Job Description (JD)</label>
+                    <textarea x-model="jobDescription" class="input-glass w-full h-32 rounded-xl p-4 text-sm text-slate-200 placeholder-slate-600 resize-none outline-none font-mono leading-relaxed" placeholder="Paste the job description requirements here..."></textarea>
+                </div>
+
+                <!-- Resume -->
+                <div class="flex-1 flex flex-col">
+                    <label class="block text-xs font-semibold text-sky-400 uppercase tracking-wider mb-2">Resume (Plain Text)</label>
+                    <textarea x-model="resumeText" class="input-glass w-full flex-1 min-h-[200px] rounded-xl p-4 text-sm text-slate-200 placeholder-slate-600 resize-none outline-none font-mono leading-relaxed" placeholder="Paste the candidate's resume text here..."></textarea>
+                </div>
+
+                <!-- Analyze Button -->
+                <button @click="analyze()" :disabled="isLoading || !resumeText.trim() || !jobDescription.trim()" 
+                    class="mt-6 w-full group relative overflow-hidden rounded-xl p-[1px] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span class="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#f59e0b_0%,#ef4444_50%,#f59e0b_100%)]"></span>
+                    <span class="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-xl bg-slate-950 px-8 py-4 text-sm font-bold text-white backdrop-blur-3xl transition-all group-hover:bg-slate-900">
+                        <span x-show="!isLoading" class="flex items-center gap-2 uppercase tracking-widest">
+                            <span>🧠</span>
+                            <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-red-400">Analyze with Chain-of-Thought</span>
+                        </span>
+                        <span x-show="isLoading" class="flex items-center gap-3">
+                            <svg class="animate-spin h-5 w-5 text-amber-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span class="text-amber-400 text-xs">Processing...</span>
+                        </span>
+                    </span>
+                </button>
+            </div>
+
+            <!-- RIGHT: Reasoning Terminal -->
+            <div class="flex flex-col gap-6">
+                <!-- Terminal -->
+                <div class="terminal rounded-xl overflow-hidden flex-1 flex flex-col min-h-[400px]">
+                    <!-- Terminal Header -->
+                    <div class="terminal-header px-4 py-3 flex items-center gap-3">
+                        <div class="flex gap-2">
+                            <div class="terminal-dot bg-red-500"></div>
+                            <div class="terminal-dot bg-yellow-500"></div>
+                            <div class="terminal-dot bg-green-500"></div>
+                        </div>
+                        <span class="text-slate-400 text-xs font-mono flex-1 text-center">Chain-of-Thought Reasoning</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-slate-500" x-text="progress + '%'"></span>
+                            <div class="w-24 h-1 bg-slate-700 rounded-full overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-amber-500 to-emerald-500 transition-all duration-300" :style="'width: ' + progress + '%'"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Terminal Body -->
+                    <div class="flex-1 p-4 overflow-y-auto" id="terminal-body">
+                        <div x-show="steps.length === 0" class="h-full flex items-center justify-center">
+                            <p class="text-slate-500 text-sm font-mono">Awaiting input... Click "Analyze" to start</p>
+                        </div>
+
+                        <template x-for="(step, index) in steps" :key="index">
+                            <div class="step-line mb-3 text-sm" :style="'animation-delay: ' + (index * 0.1) + 's'">
+                                <!-- Step Header -->
+                                <div class="flex items-start gap-2">
+                                    <!-- Status Icon -->
+                                    <span x-show="step.status === 'running'" class="text-yellow-400">⏳</span>
+                                    <span x-show="step.status === 'complete'" class="text-green-400">✓</span>
+                                    <span x-show="step.status === 'error'" class="text-red-400">✗</span>
+                                    <span x-show="step.status === 'pending'" class="text-slate-500">○</span>
+
+                                    <!-- Step Name -->
+                                    <span class="font-semibold" :class="{
+                                        'text-yellow-300': step.status === 'running',
+                                        'text-green-300': step.status === 'complete',
+                                        'text-red-300': step.status === 'error',
+                                        'text-slate-400': step.status === 'pending'
+                                    }" x-text="step.name"></span>
+                                </div>
+
+                                <!-- Action -->
+                                <div class="ml-6 text-slate-400 text-xs mt-1" x-show="step.action" x-text="step.action"></div>
+
+                                <!-- Details -->
+                                <div class="ml-6 text-terminal-blue text-xs mt-1 font-mono" x-show="step.details" x-text="step.details"></div>
+
+                                <!-- Data (Expandable) -->
+                                <div x-show="step.data" class="ml-6 mt-2">
+                                    <details class="group">
+                                        <summary class="text-xs text-purple-400 cursor-pointer hover:text-purple-300">View Data</summary>
+                                        <pre class="mt-2 p-2 bg-slate-900/50 rounded text-xs text-slate-300 overflow-x-auto" x-text="JSON.stringify(step.data, null, 2)"></pre>
+                                    </details>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Final Result Card (appears when complete) -->
+                <div x-show="finalResult" x-transition:enter="animate__animated animate__fadeInUp" class="result-card rounded-xl p-6"
+                    :class="finalResult?.decision === 'Shortlisted' ? 'bg-gradient-to-br from-emerald-950/50 to-emerald-900/20 border border-emerald-500/30' : 'bg-gradient-to-br from-red-950/50 to-red-900/20 border border-red-500/30'">
+                    
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="text-xs uppercase tracking-widest opacity-60 font-semibold mb-1" 
+                                x-text="finalResult?.decision === 'Shortlisted' ? '✅ RECOMMENDED' : '❌ NOT RECOMMENDED'"></div>
+                            <h2 class="text-4xl font-bold text-white mb-1" x-text="(finalResult?.match_percentage || 0) + '%'"></h2>
+                            <p class="text-sm opacity-70" x-text="finalResult?.decision"></p>
+                        </div>
+                        <span class="text-4xl" x-text="finalResult?.decision === 'Shortlisted' ? '🏆' : '⚠️'"></span>
+                    </div>
+
+                    <p class="mt-4 text-sm text-slate-300" x-text="finalResult?.summary"></p>
+
+                    <!-- Matched/Missing Requirements -->
+                    <div class="mt-4 grid grid-cols-2 gap-4">
+                        <div>
+                            <h4 class="text-xs font-semibold text-emerald-400 uppercase mb-2">Matched</h4>
+                            <div class="flex flex-wrap gap-1">
+                                <template x-for="req in (finalResult?.matched_requirements || []).slice(0, 5)" :key="req">
+                                    <span class="text-xs bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded" x-text="req"></span>
+                                </template>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-semibold text-red-400 uppercase mb-2">Missing</h4>
+                            <div class="flex flex-wrap gap-1">
+                                <template x-for="req in (finalResult?.missing_requirements || []).slice(0, 5)" :key="req">
+                                    <span class="text-xs bg-red-500/20 text-red-300 px-2 py-0.5 rounded" x-text="req"></span>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="mt-8 text-center text-slate-500 text-xs">
+            <p>Development Mode • Onboard AI (TF-IDF) + Gemini 3 Flash Preview • Task B Implementation</p>
+        </footer>
+    </div>
+
+    <script>
+        function devApp() {
+            return {
+                devModeEnabled: true,
+                jobDescription: '',
+                resumeText: '',
+                isLoading: false,
+                progress: 0,
+                steps: [],
+                finalResult: null,
+                eventSource: null,
+
+                async init() {
+                    // Check if dev mode is enabled
+                    try {
+                        const res = await fetch('/api/dev/config');
+                        const config = await res.json();
+                        this.devModeEnabled = config.development_mode;
+                    } catch (e) {
+                        console.error('Failed to fetch dev config:', e);
+                    }
+
+                    // Set sample data for quick testing
+                    this.jobDescription = `Senior Python Developer
+Position: Senior Software Engineer
+
+Requirements:
+- 5+ years of experience in Python development
+- Strong expertise in FastAPI, Django, or Flask
+- Experience with AI/ML technologies (TensorFlow, PyTorch, or similar)
+- Proficiency in Docker and Kubernetes
+- Experience with SQL and NoSQL databases
+- Strong knowledge of algorithms and data structures
+- Excellent communication and leadership skills
+- Bachelor's degree in Computer Science or related field
+
+Nice to have:
+- Experience with cloud platforms (AWS, GCP, Azure)
+- Contributions to open source projects
+- Experience with microservices architecture`;
+
+                    this.resumeText = `John Smith
+Senior Python Developer | john.smith@email.com | LinkedIn: linkedin.com/in/johnsmith
+
+SUMMARY
+Experienced Python developer with 7+ years building scalable web applications and AI/ML systems.
+Passionate about clean code, microservices, and cloud-native technologies.
+
+SKILLS
+Programming: Python, JavaScript, TypeScript, SQL
+Frameworks: FastAPI, Django, Flask, React, Next.js
+AI/ML: TensorFlow, PyTorch, scikit-learn, NLP, Computer Vision
+Databases: PostgreSQL, MongoDB, Redis, Elasticsearch
+Cloud & DevOps: AWS, Docker, Kubernetes, CI/CD, Terraform
+Tools: Git, Linux, Nginx, RabbitMQ
+
+EXPERIENCE
+
+Tech Solutions Inc. | Senior Python Developer | 2020 - Present
+- Led team of 5 developers building ML-powered recommendation system
+- Designed and implemented FastAPI microservices handling 10M+ requests/day
+- Reduced deployment time by 80% using Docker and Kubernetes
+- Built NLP pipeline for text classification achieving 95% accuracy
+
+DataCorp Analytics | Python Developer | 2017 - 2020
+- Developed data processing pipelines using Python and Apache Spark
+- Created Django REST APIs for internal analytics platform
+- Implemented machine learning models for fraud detection
+- Collaborated with data scientists to deploy models to production
+
+EDUCATION
+Master of Science in Computer Science | MIT | 2017
+Bachelor of Science in Computer Engineering | Stanford | 2015
+
+PROJECTS
+- Open source contributor to FastAPI and Pydantic
+- Personal blog on Python best practices (5k+ followers)`;
+                },
+
+                analyze() {
+                    if (!this.devModeEnabled) {
+                        alert('Development mode is not enabled. Please set DEVELOPMENT_MODE=true in .env');
+                        return;
+                    }
+
+                    // Reset state
+                    this.isLoading = true;
+                    this.progress = 0;
+                    this.steps = [];
+                    this.finalResult = null;
+
+                    // Close existing connection if any
+                    if (this.eventSource) {
+                        this.eventSource.close();
+                    }
+
+                    // Use fetch with POST for SSE (workaround for EventSource limitations)
+                    this.streamAnalysis();
+                },
+
+                async streamAnalysis() {
+                    try {
+                        const response = await fetch('/api/dev/analyze-stream', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                resume_text: this.resumeText,
+                                job_description: this.jobDescription
+                            })
+                        });
+
+                        if (!response.ok) {
+                            const error = await response.json();
+                            throw new Error(error.detail || 'Analysis failed');
+                        }
+
+                        const reader = response.body.getReader();
+                        const decoder = new TextDecoder();
+                        let buffer = '';
+
+                        while (true) {
+                            const { value, done } = await reader.read();
+                            if (done) break;
+
+                            buffer += decoder.decode(value, { stream: true });
+                            const lines = buffer.split('\n\n');
+                            buffer = lines.pop() || '';
+
+                            for (const line of lines) {
+                                if (line.startsWith('data: ')) {
+                                    try {
+                                        const data = JSON.parse(line.slice(6));
+                                        this.handleStreamData(data);
+                                    } catch (e) {
+                                        console.error('Failed to parse SSE data:', e);
+                                    }
+                                }
+                            }
+                        }
+
+                        this.isLoading = false;
+
+                    } catch (error) {
+                        console.error('Stream analysis error:', error);
+                        this.steps.push({
+                            name: '❌ Error',
+                            action: error.message,
+                            status: 'error'
+                        });
+                        this.isLoading = false;
+                    }
+                },
+
+                handleStreamData(data) {
+                    // Update progress
+                    if (data.progress !== undefined) {
+                        this.progress = data.progress;
+                    }
+
+                    // Check for final result
+                    if (data.phase === 'final' || data.phase === 'fallback') {
+                        this.finalResult = data.result;
+                    }
+
+                    // Check for stream end
+                    if (data.phase === 'done') {
+                        this.isLoading = false;
+                        return;
+                    }
+
+                    // Add step to display
+                    if (data.name) {
+                        this.steps.push({
+                            name: data.name,
+                            action: data.action,
+                            details: data.details,
+                            data: data.data,
+                            status: data.status || 'complete'
+                        });
+
+                        // Auto-scroll terminal
+                        this.$nextTick(() => {
+                            const terminal = document.getElementById('terminal-body');
+                            if (terminal) {
+                                terminal.scrollTop = terminal.scrollHeight;
+                            }
+                        });
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
