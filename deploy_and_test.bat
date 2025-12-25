@@ -1,9 +1,9 @@
 @echo off
 setlocal EnableDelayedExpansion
-title Resha - Deployment & Test Suite
+title Resha - Deployment and Test Suite
 
 echo ========================================================
-echo  Resha - One-Click Deployment & Test
+echo  Resha - One-Click Deployment and Test
 echo ========================================================
 echo.
 
@@ -20,7 +20,7 @@ python -m pip install --upgrade pip >nul 2>&1
 pip install -r requirements.txt >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Failed to install dependencies.
-    pause
+    rem pause
     exit /b 1
 )
 
@@ -46,7 +46,7 @@ if %ERRORLEVEL% NEQ 0 (
             echo [ERROR] Failed to install Ollama. Please install manually.
         ) else (
             echo [INFO] Ollama installed.
-            timeout /t 5 /nobreak >nul
+            ping 127.0.0.1 -n 6 >nul
             if exist "%LOCALAPPDATA%\Programs\Ollama\ollama.exe" (
                 set "OLLAMA_CMD=%LOCALAPPDATA%\Programs\Ollama\ollama.exe"
             )
@@ -57,7 +57,7 @@ if %ERRORLEVEL% NEQ 0 (
 echo [INFO] Using Ollama command: "%OLLAMA_CMD%"
 echo [INFO] Ensuring Ollama service is running...
 start /B "" "%OLLAMA_CMD%" serve >nul 2>&1
-timeout /t 5 /nobreak >nul
+ping 127.0.0.1 -n 6 >nul
 
 echo [INFO] Pulling recommended models...
 echo        - Pulling phi3:mini...
@@ -80,7 +80,7 @@ echo [INFO] Waiting for server to become responsive...
 :: Wait loop
 set /a retries=0
 :wait_loop
-timeout /t 2 /nobreak >nul
+    ping 127.0.0.1 -n 3 >nul
 curl -s http://localhost:8000/docs >nul
 if %ERRORLEVEL% NEQ 0 (
     set /a retries+=1
@@ -120,9 +120,9 @@ if %ERRORLEVEL% NEQ 0 (
 
 :: 6. Run Validations and Pytest
 echo.
-echo [6/6] Running Unit & Integration Tests...
+echo [6/6] Running Unit ^& Integration Tests...
 echo ============================================
-pytest tests/
+python -m pytest tests/
 if %ERRORLEVEL% NEQ 0 (
     echo [FAIL] Unit Tests Failed.
     set TEST_FAIL=1

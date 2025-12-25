@@ -5,7 +5,7 @@ SETLOCAL EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 
 echo ========================================================
-echo  Resha - Enterprise Setup & Launcher
+echo  Resha - Enterprise Setup and Launcher
 echo ========================================================
 echo.
 
