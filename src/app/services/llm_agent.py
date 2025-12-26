@@ -29,6 +29,12 @@ IMPORTANT: You MUST respond with a valid JSON object in this exact format:
 {
     "decision": "Shortlisted" or "Rejected",
     "match_percentage": <number between 0-100>,
+    "candidate_profile": {
+        "candidate_type": "Fresher" or "Experienced" or "Senior",
+        "years_experience": <number of years as integer>,
+        "organizations": ["<list of companies/universities mentioned in resume>"],
+        "locations": ["<list of cities/countries mentioned in resume>"]
+    },
     "reasoning": {
         "skills_analysis": "<analysis of skills match>",
         "experience_analysis": "<analysis of experience match>",

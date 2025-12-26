@@ -1,6 +1,8 @@
-# Task B Deliverables - AI-Powered Resume Shortlisting Agent
+# Resha - Task B Deliverables
 
-**Version 3.0.0** - Enterprise-Grade Hybrid Multi-Model Architecture
+**Version 3.0.0** - Production-Ready Hybrid Multi-Model Architecture
+
+*Brought to you by [dmj.one](https://dmj.one)*
 
 This folder contains all required deliverables for **Task B: AI-Powered Resume Shortlisting Agent**.
 
@@ -27,7 +29,7 @@ This folder contains all required deliverables for **Task B: AI-Powered Resume S
 - Powered by Ollama (Phi-3, Qwen, Gemma models)
 - Zero external API dependency for offline operation
 
-### Enterprise-Grade Multi-Model Architecture
+### Resha Multi-Model Architecture
 - 3-tier inference: Onboard AI → Local LLM → Cloud LLM
 - Weighted consensus for higher accuracy
 - Automatic fallback with graceful degradation
@@ -142,7 +144,7 @@ python tests/test_task_b_verification.py
 5. ✅ Returns a JSON summary explaining why
 6. ✅ **[NEW]** Dynamic chain-of-thought (real LLM output)
 7. ✅ **[NEW]** Lightweight CPU-only inference (no GPU required)
-8. ✅ **[NEW]** Enterprise-grade multi-model architecture
+8. ✅ **[NEW]** Production-ready multi-model architecture
 
 **System Instruction:**
 ```

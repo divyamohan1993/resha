@@ -253,7 +253,7 @@ def start_server(host: str, port: int, reload: bool = False):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="TalentScout Pro AI Server")
+    parser = argparse.ArgumentParser(description="Resha - AI Resume Shortlisting Server")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="Port to run on")
     parser.add_argument("--host", default=DEFAULT_HOST, help="Host to bind to")
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload")

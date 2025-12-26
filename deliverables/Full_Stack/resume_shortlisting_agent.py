@@ -1,17 +1,22 @@
 """
-Enterprise-Grade AI-Powered Resume Shortlisting Agent
-======================================================
+Resha - AI-Powered Resume Shortlisting Agent
+==============================================
 
 Version: 3.0.0 (Hybrid Multi-Model Architecture)
+*Brought to you by dmj.one*
 
 This is the MAIN DELIVERABLE file for Task B - AI Resume Shortlisting Agent.
+
+"Resha" (Hindi for "Fiber" or "Fine Line") serves as the fine line between
+a candidate's acceptance and rejection. It checks resumes dynamically,
+ensuring precise and fair shortlisting.
 
 Architecture Overview:
 ----------------------
 This agent implements a sophisticated 3-tier AI analysis system:
 
     ┌─────────────────────────────────────────────────────────────────┐
-    │                  HYBRID AI AGENT ORCHESTRATOR                    │
+    │                  RESHA HYBRID AI ORCHESTRATOR                    │
     ├─────────────────────────────────────────────────────────────────┤
     │                                                                  │
     │   TIER 1           TIER 2              TIER 3                   │
@@ -38,7 +43,7 @@ Key Features:
 -------------
 1. DYNAMIC CHAIN-OF-THOUGHT: Real streaming from LLM, not simulated
 2. OFFLINE CAPABLE: Local LLM via Ollama (CPU-only, no GPU required)
-3. ENTERPRISE SECURITY: Data never leaves local environment
+3. DATA PRIVACY: Data never leaves local environment
 4. MULTI-MODEL CONSENSUS: Weighted voting for higher accuracy
 5. GRACEFUL DEGRADATION: Automatic fallback between tiers
 
@@ -361,7 +366,7 @@ class OnboardAI:
 
 class HybridShortlistingAgent:
     """
-    Enterprise-grade Hybrid AI Agent for resume shortlisting.
+    Resha Hybrid AI Agent for resume shortlisting.
     
     Combines multiple inference engines:
     1. Onboard AI (Tier 1): Ultra-fast deterministic analysis

@@ -29,6 +29,7 @@ class AnalysisResponse(BaseModel):
     score: float
     ai_analysis: AIAnalysisResult
     meta: Dict[str, Any]
+    reasoning_loop: Optional[Dict[str, Any]] = None  # Agent's reasoning loop JSON output
 
 class FeedbackRequest(BaseModel):
     resume_id: Optional[str] = None # Hash or filename

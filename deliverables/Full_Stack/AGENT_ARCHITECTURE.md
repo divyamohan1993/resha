@@ -1,8 +1,12 @@
-# AI-Powered Resume Shortlisting Agent - Architecture Documentation
+# Resha - AI-Powered Resume Shortlisting Agent
 
-## Version 3.0.0 - Enterprise-Grade Hybrid Multi-Model Architecture
+## Architecture Documentation
 
-This document explains the architecture of the AI-powered Resume Shortlisting Agent as implemented for **Task B**. The agent automatically shortlists or rejects resumes based on how well the candidate's skills and experience match a provided Job Description (JD).
+**Version 3.0.0** - Production-Ready Hybrid Multi-Model Architecture
+
+*Brought to you by [dmj.one](https://dmj.one)*
+
+This document explains the architecture of **Resha** (Hindi for "Fiber" or "Fine Line"), the AI-powered Resume Shortlisting Agent. Resha serves as the fine line between a candidate's acceptance and rejection, analyzing resumes against job descriptions with precision and fairness.
 
 ---
 
@@ -97,7 +101,7 @@ The central orchestrator that manages all inference tiers:
 ```python
 class HybridAIAgent:
     """
-    Enterprise-grade Hybrid AI Agent for resume shortlisting.
+    Resha Hybrid AI Agent for resume shortlisting.
     
     Tiers:
     1. Onboard AI (TF-IDF + Pattern) - Ultra-fast preliminary analysis
@@ -121,7 +125,7 @@ Provides CPU-only LLM inference via Ollama:
 ```python
 class LocalLLMService:
     """
-    Enterprise-grade Local LLM Service.
+    Resha Local LLM Service.
     
     Features:
     1. Multi-model support with automatic fallback
@@ -428,7 +432,7 @@ curl -X POST http://localhost:8000/api/dev/hybrid-analyze \
 ✅ Analyzes: skills, experience, projects, education, and role fit
 ✅ **[NEW]** Dynamic chain-of-thought (real LLM output, not simulated)
 ✅ **[NEW]** Lightweight local LLM (runs on CPU without GPU)
-✅ **[NEW]** Enterprise-grade multi-model architecture
+✅ **[NEW]** Production-ready multi-model architecture
 
 ---
 

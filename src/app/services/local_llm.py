@@ -1,5 +1,5 @@
 """
-Enterprise-Grade Local LLM Service
+Resha Local LLM Service
 
 This module provides lightweight, modern LLM capabilities that run locally without GPU:
 - Primary: Ollama integration (supports Qwen3, Phi-3, Gemma, Mistral, TinyLlama)
@@ -10,7 +10,7 @@ Key Features:
 1. CPU-optimized inference with quantized models
 2. Dynamic chain-of-thought streaming (real LLM output, not simulated)
 3. Multiple model support with automatic fallback
-4. Enterprise security: no data leaves the local environment
+4. Data privacy: no data leaves the local environment
 
 Recommended Models (sorted by size/speed):
 - Phi-3 Mini (3.8B): Best quality/speed ratio for most tasks
@@ -33,15 +33,10 @@ logger = get_logger(__name__)
 
 class LocalModelType(Enum):
     """Supported local model types for CPU inference."""
-    PHI3_MINI = "phi3:mini"           # 3.8B - Best balance
-    PHI3_MEDIUM = "phi3:medium"       # 14B - Higher quality
-    GEMMA_2B = "gemma:2b"             # 2B - Ultra-lightweight
-    GEMMA2_2B = "gemma2:2b"           # 2B - Improved version
-    QWEN2_5_3B = "qwen2.5:3b"         # 3B - Great for JSON output
+    GEMMA3_1B = "gemma3:1b"            # 1B - Ultra-fast, good balance
+    QWEN2_5_3B = "qwen2.5:3b"          # 3B - Great for JSON output
     QWEN2_5_CODER_3B = "qwen2.5-coder:3b"  # 3B - Code/structured output
-    TINYLLAMA = "tinyllama"           # 1.1B - Fastest
-    MISTRAL_7B = "mistral:7b-instruct-q4_K_M"  # 7B quantized
-
+    TINYLLAMA = "tinyllama"            # 1.1B - Fastest
 
 @dataclass
 class ModelConfig:
@@ -195,7 +190,7 @@ class OllamaClient:
 
 class LocalLLMService:
     """
-    Enterprise-grade Local LLM Service for resume analysis.
+    Resha Local LLM Service for resume analysis.
     
     Features:
     1. Multi-model support with automatic fallback
@@ -209,11 +204,13 @@ class LocalLLMService:
     SYSTEM_PROMPT = """You are an advanced Resume Shortlisting AI Agent. Your task is to evaluate resumes against job descriptions with precision.
 
 ANALYSIS PROTOCOL:
-1. SKILLS ANALYSIS: Identify technical and soft skills, match against JD requirements
-2. EXPERIENCE ANALYSIS: Evaluate years of experience, career progression, relevant roles
-3. EDUCATION ANALYSIS: Check educational qualifications, certifications
-4. PROJECTS ANALYSIS: Assess relevant projects, achievements, impact
-5. ROLE FIT: Determine overall suitability for the position
+1. CANDIDATE PROFILE: Extract candidate type (Fresher/Experienced/Senior) and years of experience
+2. SKILLS ANALYSIS: Identify technical and soft skills, match against JD requirements
+3. EXPERIENCE ANALYSIS: Evaluate years of experience, career progression, relevant roles
+4. EDUCATION ANALYSIS: Check educational qualifications, certifications
+5. PROJECTS ANALYSIS: Assess relevant projects, achievements, impact
+6. ENTITY EXTRACTION: Identify organizations (companies, universities) and locations mentioned
+7. ROLE FIT: Determine overall suitability for the position
 
 DECISION CRITERIA:
 - If match >= 70%: Output "Shortlisted"
@@ -227,6 +224,12 @@ JSON FORMAT (must be valid JSON enclosed in ```json blocks):
 {
     "decision": "Shortlisted" or "Rejected",
     "match_percentage": <number 0-100>,
+    "candidate_profile": {
+        "candidate_type": "Fresher" or "Experienced" or "Senior",
+        "years_experience": <number of years as integer>,
+        "organizations": ["<list of companies/universities mentioned>"],
+        "locations": ["<list of cities/countries mentioned>"]
+    },
     "reasoning": {
         "skills_analysis": "<detailed analysis>",
         "experience_analysis": "<detailed analysis>",
@@ -259,12 +262,10 @@ Be thorough, objective, and consistent in your evaluation."""
         
         # Model preference order (by quality/speed balance)
         self.model_priority = [
-            "phi3:mini",
-            "qwen2.5:3b", 
-            "gemma2:2b",
-            "gemma:2b",
-            "mistral:7b-instruct-q4_K_M",
-            "tinyllama",
+            "gemma3:1b",   # Gemma 3 1B - Ultra-fast, good for quick analysis
+            "qwen2.5:3b",  # 3B - Great for JSON output
+            "qwen2.5-coder:3b",  # 3B - Code/structured output
+            "tinyllama",   # 1.1B - Fastest
         ]
     
     async def initialize(self) -> bool:
@@ -540,7 +541,7 @@ Show your reasoning process, then provide the JSON output."""
                 "cpu_only_inference",
                 "real_streaming_cot",
                 "offline_capable",
-                "enterprise_secure"
+                "data_privacy"
             ]
         }
 

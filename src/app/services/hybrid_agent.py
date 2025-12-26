@@ -27,7 +27,7 @@ Architecture:
                    FINAL DECISION
                    (Consensus + Confidence)
 
-Enterprise Features:
+Resha Features:
 - Multi-model consensus for higher accuracy
 - Automatic fallback with graceful degradation
 - Real-time streaming chain-of-thought
@@ -88,7 +88,7 @@ class HybridResult:
 
 class HybridAIAgent:
     """
-    Enterprise-grade Hybrid AI Agent for resume shortlisting.
+    Resha Hybrid AI Agent for resume shortlisting.
     
     This agent combines multiple inference engines:
     1. Onboard AI (Tier 1): Ultra-fast deterministic analysis
@@ -613,7 +613,7 @@ class HybridAIAgent:
                 "real_streaming_cot",
                 "automatic_fallback",
                 "offline_capable",
-                "enterprise_audit"
+                "audit_trail"
             ]
         }
 

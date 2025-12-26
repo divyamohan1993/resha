@@ -11,7 +11,7 @@ def _generate_secure_key() -> str:
 
 class Settings(BaseSettings):
     APP_NAME: str = "Resha"
-    VERSION: str = "3.0.0"  # Enterprise-Grade Hybrid Multi-Model Architecture
+    VERSION: str = "3.0.0"  # Production-Ready Hybrid Multi-Model Architecture
     DEBUG: bool = False
     API_PREFIX: str = "/api/v1"
     

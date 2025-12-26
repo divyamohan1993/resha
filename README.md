@@ -2,7 +2,7 @@
 
 **Brought to you by [dmj.one](https://dmj.one)**
 
-**Version 3.0.0** - Enterprise-Grade Hybrid Multi-Model Architecture
+**Version 3.0.0** - Production-Ready Hybrid Multi-Model Architecture
 
 "Resha" (Hindi for "Fiber" or "Fine Line") serves as the fine line between a candidate's acceptance and rejection. It checks resumes dynamically, ensuring precise and fair shortlisting.
 
@@ -10,7 +10,7 @@ A production-grade, AI-powered microservice for analyzing resumes against job de
 
 ## 🌟 Key Features
 
-### Enterprise-Grade AI Architecture
+### Resha AI Architecture
 *   **Hybrid Multi-Model**: 3-tier inference (Onboard AI → Local LLM → Cloud LLM)
 *   **Real Chain-of-Thought**: Genuine streaming from LLM, not simulated steps
 *   **Offline Capable**: Local LLM via Ollama (CPU-only, no GPU required)
@@ -185,4 +185,4 @@ MIT License - See LICENSE file for details.
 
 ---
 
-**Built with ❤️ for enterprise AI/ML applications**
+**Built with ❤️ by [dmj.one](https://dmj.one)**
