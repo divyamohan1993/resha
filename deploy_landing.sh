@@ -35,11 +35,12 @@ info "Deploying landing page for reas.dmj.one..."
 # STEP 1: Create landing page directory and copy files
 # ==============================================================================
 mkdir -p "${LANDING_DIR}"
-cp "${LANDING_HTML}" "${LANDING_DIR}/index.html"
+# Copy all files (index.html, favicon.svg, etc.)
+cp -r "${SCRIPT_DIR}/landing/"* "${LANDING_DIR}/"
 chown -R www-data:www-data "${LANDING_DIR}"
-chmod 644 "${LANDING_DIR}/index.html"
+chmod 644 "${LANDING_DIR}"/*
 
-log "Landing page copied to ${LANDING_DIR}"
+log "Landing page files copied to ${LANDING_DIR}"
 
 # ==============================================================================
 # STEP 2: Update nginx config to serve landing page at root
@@ -68,12 +69,14 @@ root_block = f'''
     root {landing_dir};
     index index.html;
     
-    location = / {{
-        try_files /index.html =404;
+    location / {{
+        # First try exact URI (for favicon, assets), then directory, then index.html
+        try_files \$uri \$uri/ /index.html;
     }}
     
-    location = /index.html {{
-        expires 1h;
+    # Cache settings for static assets
+    location ~* \.(jpg|jpeg|png|gif|ico|css|js|svg)$ {{
+        expires 7d;
         add_header Cache-Control "public, must-revalidate";
     }}
 '''
