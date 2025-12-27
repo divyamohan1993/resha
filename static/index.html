@@ -141,7 +141,7 @@
                 </div>
                 <div class="mt-4 md:mt-0 flex items-center gap-3">
                     <!-- Dev Mode Button -->
-                    <a x-show="devModeEnabled" href="/dev.html" class="bg-gradient-to-r from-amber-500 to-red-500 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider animate-pulse hover:animate-none hover:opacity-90 transition-opacity flex items-center gap-1">
+                    <a x-show="devModeEnabled" :href="basePath + 'dev.html'" class="bg-gradient-to-r from-amber-500 to-red-500 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider animate-pulse hover:animate-none hover:opacity-90 transition-opacity flex items-center gap-1">
                         <span>🧪</span> Dev Mode
                     </a>
                     <div class="bg-slate-800/80 rounded-full px-4 py-1.5 border border-white/10 flex items-center gap-2">
@@ -412,8 +412,19 @@
     </div>
 
     <script>
+        // Detect base path for deployment under subpath (e.g., /task2/)
+        function getBasePath() {
+            const path = window.location.pathname;
+            // Check if running under a known subpath
+            if (path.startsWith('/task2/') || path.startsWith('/task2')) {
+                return '/task2/';
+            }
+            return '/';
+        }
+
         function app() {
             return {
+                basePath: getBasePath(),
                 jobDescription: '',
                 resumeText: '',
                 inputMode: 'text',
@@ -434,7 +445,7 @@
 
                     // Check if development mode is enabled
                     try {
-                        const res = await fetch('/api/dev/config');
+                        const res = await fetch(this.basePath + 'api/dev/config');
                         const config = await res.json();
                         this.devModeEnabled = config.development_mode;
                     } catch (e) {
@@ -444,7 +455,7 @@
 
                 async fetchHistory() {
                     try {
-                        const res = await fetch('/api/history');
+                        const res = await fetch(this.basePath + 'api/history');
                         this.history = await res.json();
                     } catch (e) {
                         // Silent fail
@@ -497,7 +508,7 @@
 
                         if (this.inputMode === 'text') {
                             if (!this.resumeText.trim()) throw new Error('Candidate Data is empty.');
-                            response = await fetch('/api/analyze', {
+                            response = await fetch(this.basePath + 'api/analyze', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
@@ -510,7 +521,7 @@
                             const formData = new FormData();
                             formData.append('job_description', this.jobDescription);
                             formData.append('file', this.resumeFile);
-                            response = await fetch('/api/analyze-file', {
+                            response = await fetch(this.basePath + 'api/analyze-file', {
                                 method: 'POST',
                                 body: formData
                             });

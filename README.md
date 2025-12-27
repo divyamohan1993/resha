@@ -29,47 +29,90 @@ A production-grade, AI-powered microservice for analyzing resumes against job de
 *   **Audit Trail**: SQLite-based decision logging
 *   **Strict Security Headers**: CSP, HSTS, X-Frame-Options
 
-## 🚀 Getting Started
+---
+
+## 🚀 One-Click Deployment (Production)
+
+### Deploy to VM (reas.dmj.one/task2/)
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/divyamohan1993/resha.git
+cd resha
+
+# 2. Run the deployment script
+sudo bash run_project.sh
+```
+
+This will:
+- ✅ Install all system dependencies (Python, nginx, etc.)
+- ✅ Create Python virtual environment
+- ✅ Install Python dependencies (FastAPI, PyTorch CPU, spaCy, etc.)
+- ✅ Configure environment with secure auto-generated credentials
+- ✅ Create and start systemd service (port 22000)
+- ✅ Configure nginx for `/task2/` path routing
+- ✅ NOT interfere with existing `/task1/` service
+
+### After Deployment
+
+| Command | Description |
+|---------|-------------|
+| `systemctl status resha` | Check service status |
+| `journalctl -u resha -f` | View live logs |
+| `systemctl restart resha` | Restart service |
+| `sudo bash stop_service.sh` | Stop service |
+
+### Access Points
+
+| URL | Description |
+|-----|-------------|
+| `https://reas.dmj.one/task2/` | Main Application |
+| `https://reas.dmj.one/task2/dev.html` | Development Mode (Chain-of-Thought) |
+| `https://reas.dmj.one/task2/api/health` | Health Check |
+
+---
+
+## 🛠️ Local Development
 
 ### Prerequisites
-*   **Python 3.11+**
+*   **Python 3.10+**
 *   **Ollama** (for local LLM) - [Download](https://ollama.ai)
-*   **Docker Desktop** (optional, for containerized deployment)
 
-### Quick Start (Development Mode)
+### Quick Start
 
 ```bash
 # 1. Clone and setup
 git clone https://github.com/divyamohan1993/resha.git
 cd resha
+
+# 2. Create virtual environment
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# or: venv\Scripts\activate  # Windows
+
+# 3. Install dependencies
 pip install -r requirements.txt
+python -m spacy download en_core_web_sm
 
-# 2. Install Ollama and pull a model
-# Download Ollama from https://ollama.ai
-ollama serve                  # Start Ollama service
-ollama pull phi3:mini         # Pull recommended model (~2GB)
-
-# 3. Configure environment
+# 4. Configure environment
 cp .env.example .env
-# Edit .env: Set DEVELOPMENT_MODE=true
+# Edit .env: Set your GEMINI_API_KEY
 
-# 4. Start the server
-python run_server.py
+# 5. Start the server
+python run_server.py --port 22000
 
-# 5. Open http://localhost:8000
+# 6. Open http://localhost:22000
 ```
 
-### Docker Deployment (Production)
-
-```powershell
-# Windows (PowerShell)
-.\start.ps1
-```
+### With Local LLM (Optional)
 
 ```bash
-# Linux / WSL
-./start.sh
+# Install Ollama from https://ollama.ai
+ollama serve                  # Start Ollama service
+ollama pull phi3:mini         # Pull recommended model (~2GB)
 ```
+
+---
 
 ## 📡 API Endpoints
 
@@ -79,19 +122,21 @@ python run_server.py
 | `/api/analyze` | POST | SBERT-based semantic analysis |
 | `/api/shortlist` | POST | LLM-based shortlisting (Gemini) |
 | `/api/analyze-file` | POST | File upload (PDF/DOCX/TXT) |
+| `/api/health` | GET | Health check |
+| `/api/history` | GET | Analysis history |
 
-### Hybrid AI (Development Mode)
+### Development Mode Endpoints
 | Endpoint | Method | Description |
 |----------|--------|-------------|
+| `/api/dev/config` | GET | Development mode status |
+| `/api/dev/analyze-stream` | POST | Real-time streaming CoT |
 | `/api/dev/hybrid-analyze` | POST | Multi-model consensus |
-| `/api/dev/hybrid-stream` | POST | Real-time streaming CoT |
-| `/api/dev/local-llm` | POST | Local LLM only |
 | `/api/dev/status` | GET | System health check |
 
 ### Example Request
 
 ```bash
-curl -X POST http://localhost:8000/api/dev/hybrid-analyze \
+curl -X POST https://reas.dmj.one/task2/api/analyze \
   -H "Content-Type: application/json" \
   -d '{
     "resume_text": "John Smith, Senior Python Developer...",
@@ -99,14 +144,18 @@ curl -X POST http://localhost:8000/api/dev/hybrid-analyze \
   }'
 ```
 
+---
+
 ## 🤖 Supported Local Models
 
 | Model | Size | Speed | Quality | Command |
-|-------|------|-------|---------|---------|
+|-------|------|-------|---------| --------|
 | **Phi-3 Mini** | ~2GB | ★★★★☆ | ★★★★★ | `ollama pull phi3:mini` |
 | **Qwen2.5** | ~2GB | ★★★★☆ | ★★★★☆ | `ollama pull qwen2.5:3b` |
 | **Gemma 2B** | ~1.5GB | ★★★★★ | ★★★☆☆ | `ollama pull gemma:2b` |
 | **TinyLlama** | ~700MB | ★★★★★ | ★★☆☆☆ | `ollama pull tinyllama` |
+
+---
 
 ## 📊 Architecture
 
@@ -132,33 +181,29 @@ curl -X POST http://localhost:8000/api/dev/hybrid-analyze \
 └───────────────────────────────────────────────────────────────┘
 ```
 
-## 📁 Deliverables
+---
 
-All Task B deliverables are in the `deliverables/` folder:
-
-| File | Description |
-|------|-------------|
-| `deliverables/Full_Stack/resume_shortlisting_agent.py` | Complete standalone agent code |
-| `deliverables/Full_Stack/agent_reasoning_loop_output.json` | Sample reasoning loop output |
-| `deliverables/Full_Stack/AGENT_ARCHITECTURE.md` | Detailed architecture documentation |
-
-## 🔐 Environment Variables
+## � Environment Variables
 
 ```env
-# Required for production
-API_KEY=your-secure-api-key
+# Application
+APP_NAME="Resha"
+PORT=22000
+DEVELOPMENT_MODE=true
 
-# Optional: Cloud LLM
+# Security (auto-generated by run_project.sh)
+SECRET_KEY=your-secure-key
+API_KEY=your-api-key
+
+# Cloud LLM (Optional)
 GEMINI_API_KEY=your-gemini-key
 
 # Local LLM (Ollama)
 OLLAMA_BASE_URL=http://localhost:11434
 LOCAL_LLM_ENABLED=true
-
-# Development
-DEVELOPMENT_MODE=true
-DEBUG=false
 ```
+
+---
 
 ## 📈 Performance
 
@@ -169,6 +214,20 @@ DEBUG=false
 | Cloud LLM | ~1-3s | ~95% | ❌ |
 | Consensus | ~4-6s | ~95%+ | ❌ |
 
+---
+
+## 📁 Deliverables
+
+All Task B deliverables are in the `deliverables/` folder:
+
+| File | Description |
+|------|-------------|
+| `deliverables/Full_Stack/resume_shortlisting_agent.py` | Complete standalone agent code |
+| `deliverables/Full_Stack/agent_reasoning_loop_output.json` | Sample reasoning loop output |
+| `deliverables/Full_Stack/AGENT_ARCHITECTURE.md` | Detailed architecture documentation |
+
+---
+
 ## 🧪 Testing
 
 ```bash
@@ -178,6 +237,8 @@ pytest tests/
 # Test Task B functionality
 python tests/test_task_b_verification.py
 ```
+
+---
 
 ## 📄 License
 

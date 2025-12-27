@@ -1,17 +1,79 @@
-.env
-venv/
-venv_wsl/
+# ==============================================================================
+# RESHA - AI Resume Shortlisting Agent
+# Git Ignore Configuration
+# ==============================================================================
+
+# Python
 __pycache__/
-*.pyc
-*.log
-logs/
-coverage/
-htmlcov/
-.pytest_cache/
-db_data/
-audit.db
-.DS_Store
-.vscode/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+.eggs/
+dist/
+build/
+*.manifest
+*.spec
+
+# Virtual Environment
+venv/
+.venv/
+ENV/
+env/
+
+# IDE
 .idea/
-deliverables/QA/POSTMAN_COLLECTION.json
-.agent/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment & Secrets
+.env
+*.pem
+*.key
+
+# Logs & Databases
+*.log
+*.db
+*.sqlite
+*.sqlite3
+logs/
+*.pid
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Build artifacts
+artifacts/
+*.whl
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Docker (local volumes)
+db_data/
+
+# Windows-specific (not needed on Linux deployment)
+*.bat
+*.ps1
+
+# Temp files
+*.tmp
+*.temp
+.server.pid
+
+# Agent/IDE specific
+.agent/deploy_venv/
+server.log

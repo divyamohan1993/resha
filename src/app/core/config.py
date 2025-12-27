@@ -30,8 +30,19 @@ class Settings(BaseSettings):
     # Security - API_KEY is required and must be set in .env
     # If not set, a random one will be generated (not recommended for production)
     API_KEY: str = ""
-    BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:8000", "http://localhost:3000"]
-    ALLOWED_HOSTS: list[str] = ["localhost", "127.0.0.1", "0.0.0.0"]
+    BACKEND_CORS_ORIGINS: list[str] = [
+        "http://localhost:8000", 
+        "http://localhost:3000", 
+        "http://localhost:22000",
+        "https://reas.dmj.one"
+    ]
+    ALLOWED_HOSTS: list[str] = [
+        "localhost", 
+        "127.0.0.1", 
+        "0.0.0.0", 
+        "reas.dmj.one",
+        "*"  # Allow all for nginx proxy
+    ]
     
     # Gemini API
     GEMINI_API_KEY: str = ""

@@ -24,7 +24,7 @@ import argparse
 from pathlib import Path
 
 # Configuration
-DEFAULT_PORT = 8000
+DEFAULT_PORT = 22000
 DEFAULT_HOST = "0.0.0.0"
 PROJECT_ROOT = Path(__file__).parent.absolute()
 VENV_PATH = PROJECT_ROOT / "venv"

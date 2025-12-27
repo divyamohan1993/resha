@@ -1,9 +1,17 @@
 #!/bin/bash
+# ==============================================================================
+# RESHA - Legacy Docker Deployment Script
+# ==============================================================================
+# NOTE: For simpler deployment, use run_project.sh instead
+# This script uses Docker Compose for containerized deployment
+# ==============================================================================
+
 set -e
 
-DOMAIN="resha.dmj.one"
+DOMAIN="reas.dmj.one"
 REPO_URL="https://github.com/divyamohan1993/resha.git"
 INSTALL_DIR="/opt/resha"
+APP_PORT=22000
 
 # Ensure root
 if [ "$EUID" -ne 0 ]; then
@@ -11,40 +19,23 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-echo "=== Starting Deployment for $DOMAIN ==="
+echo "=== Starting Docker Deployment for $DOMAIN/task2/ ==="
 
 # 1. Update System & Prerequisites
-echo "[1/8] Updating system packages..."
+echo "[1/7] Updating system packages..."
 apt-get update -qq && apt-get upgrade -y -qq
 apt-get install -y -qq curl git nginx certbot python3-certbot-nginx openssl
 
 # 2. Install Docker
-echo "[2/8] Installing Docker..."
+echo "[2/7] Installing Docker..."
 if ! command -v docker &> /dev/null; then
     curl -fsSL https://get.docker.com | sh
 else
     echo "Docker already installed."
 fi
 
-# 3. Install Ollama
-echo "[3/8] Installing Ollama..."
-if ! command -v ollama &> /dev/null; then
-    curl -fsSL https://ollama.com/install.sh | sh
-    systemctl enable --now ollama
-else
-    echo "Ollama already installed."
-fi
-
-# Pull Model (wait for ollama to be ready)
-echo "Waiting for Ollama..."
-until curl -s http://localhost:11434/api/tags >/dev/null; do
-    sleep 2
-done
-echo "Pulling phi3:mini model..."
-ollama pull phi3:mini
-
-# 4. Clone/Update Repo
-echo "[4/8] Setting up application code..."
+# 3. Clone/Update Repo
+echo "[3/7] Setting up application code..."
 if [ -d "$INSTALL_DIR" ]; then
     echo "Updating existing repository..."
     cd "$INSTALL_DIR"
@@ -55,69 +46,84 @@ else
     cd "$INSTALL_DIR"
 fi
 
-# 5. Configure Environment
-echo "[5/8] Configuring environment..."
+# 4. Configure Environment
+echo "[4/7] Configuring environment..."
 if [ ! -f .env ]; then
     cp .env.example .env
     # Generate random passwords for security
-    DB_PASS=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9')
-    ROOT_PASS=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9')
+    SECRET_KEY=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9')
+    API_KEY=$(openssl rand -base64 48 | tr -dc 'a-zA-Z0-9')
     
-    sed -i "s/secure_db_password/$DB_PASS/g" .env
-    sed -i "s/secure_root_password/$ROOT_PASS/g" .env
-    sed -i "s/DOMAIN_NAME=.*/DOMAIN_NAME=\"$DOMAIN\"/" .env
-    sed -i "s/ENVIRONMENT=.*/ENVIRONMENT=\"production\"/" .env
+    sed -i "s/SECRET_KEY=.*/SECRET_KEY=\"$SECRET_KEY\"/" .env
+    sed -i "s/API_KEY=.*/API_KEY=\"$API_KEY\"/" .env
+    sed -i "s/PORT=.*/PORT=$APP_PORT/" .env
     
-    # Ensure DATABASE_URL is updated
-    # The sed above for secure_db_password should handle it if .env.example uses the same placeholder
-    
-    echo "Generated new .env with random DB passwords."
+    echo "Generated new .env with secure credentials."
 else
-    echo ".env already exists, skipping generation."
+    echo ".env already exists, updating port..."
+    sed -i "s/PORT=.*/PORT=$APP_PORT/" .env
 fi
 
-# 6. Start Application
-echo "[6/8] Starting Docker containers..."
+# 5. Start Application
+echo "[5/7] Starting Docker containers..."
 docker compose up -d --build
 
-# 7. Configure Nginx
-echo "[7/8] Configuring Nginx..."
-cat > /etc/nginx/sites-available/$DOMAIN <<EOF
+# 6. Configure Nginx (add task2 location)
+echo "[6/7] Configuring Nginx for /task2/..."
+
+NGINX_CONF="/etc/nginx/sites-available/$DOMAIN"
+
+if [ ! -f "$NGINX_CONF" ]; then
+    # Create new config
+    cat > "$NGINX_CONF" << EOF
 server {
+    listen 80;
     server_name $DOMAIN;
     
     client_max_body_size 50M;
 
-    location / {
-        proxy_pass http://localhost:8000;
+    location /task2/ {
+        proxy_pass http://127.0.0.1:$APP_PORT/;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
         
-        # WebSocket support
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
     }
 }
 EOF
+else
+    # Add task2 location to existing config
+    if ! grep -q "location /task2/" "$NGINX_CONF"; then
+        # Insert task2 block before closing brace
+        sed -i '/^}/i \
+    location /task2/ {\
+        proxy_pass http://127.0.0.1:'"$APP_PORT"'/;\
+        proxy_set_header Host $host;\
+        proxy_set_header X-Real-IP $remote_addr;\
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\
+        proxy_set_header X-Forwarded-Proto $scheme;\
+        proxy_http_version 1.1;\
+        proxy_set_header Upgrade $http_upgrade;\
+        proxy_set_header Connection "upgrade";\
+    }' "$NGINX_CONF"
+    fi
+fi
 
-ln -sf /etc/nginx/sites-available/$DOMAIN /etc/nginx/sites-enabled/
-rm -f /etc/nginx/sites-enabled/default
-nginx -t && systemctl restart nginx
+ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
 
-# 8. Generate SSL (Optional attempt)
-echo "[8/8] Attempting SSL setup..."
-# We run certbot with --dry-run or check dns?
-# User said they WILL map the IP. So it might fail now.
-# We will leave a message.
-
+# 7. Summary
+echo ""
 echo "=== Deployment Complete ==="
 echo "Public IP: $(curl -s ifconfig.me)"
-echo "Domain: http://$DOMAIN"
-echo "Instructions:"
-echo "1. Map your DNS A record for $DOMAIN to the IP above."
-echo "2. Once DNS propagates, run: certbot --nginx -d $DOMAIN --non-interactive --agree-tos --email admin@dmj.one"
-echo "3. Edit $INSTALL_DIR/.env to add your GEMINI_API_KEY if needed, then run 'docker compose restart'."
+echo "Access: https://$DOMAIN/task2/"
+echo ""
+echo "Commands:"
+echo "  - Logs: docker compose logs -f"
+echo "  - Restart: docker compose restart"
+echo "  - Stop: docker compose down"
 echo "==========================="

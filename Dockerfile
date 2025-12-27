@@ -55,11 +55,11 @@ COPY --chown=appuser:appuser . .
 USER appuser
 
 # Expose port
-EXPOSE 8000
+EXPOSE 22000
 
 # Health check (optional but recommended for strictly production)
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8000/api/health || exit 1
+  CMD curl -f http://localhost:22000/api/health || exit 1
 
 # Run the application
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "22000"]

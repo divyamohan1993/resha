@@ -179,7 +179,7 @@
                 <p class="text-slate-400 text-sm mt-2">Chain-of-Thought Reasoning Display | Onboard AI + Gemini</p>
             </div>
             <div class="mt-4 md:mt-0 flex items-center gap-4">
-                <a href="/" class="text-slate-400 hover:text-white text-sm transition-colors">← Back to Main</a>
+                <a :href="basePath" class="text-slate-400 hover:text-white text-sm transition-colors">← Back to Main</a>
                 <div class="bg-slate-800/80 rounded-full px-4 py-1.5 border border-white/10 flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full" :class="devModeEnabled ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'"></div>
                     <span class="text-xs font-mono text-slate-300" x-text="devModeEnabled ? 'DEV MODE ON' : 'DEV MODE OFF'"></span>
@@ -360,8 +360,19 @@
     </div>
 
     <script>
+        // Detect base path for deployment under subpath (e.g., /task2/)
+        function getBasePath() {
+            const path = window.location.pathname;
+            // Check if running under a known subpath
+            if (path.startsWith('/task2/') || path.startsWith('/task2')) {
+                return '/task2/';
+            }
+            return '/';
+        }
+
         function devApp() {
             return {
+                basePath: getBasePath(),
                 devModeEnabled: true,
                 jobDescription: '',
                 resumeText: '',
@@ -374,7 +385,7 @@
                 async init() {
                     // Check if dev mode is enabled
                     try {
-                        const res = await fetch('/api/dev/config');
+                        const res = await fetch(this.basePath + 'api/dev/config');
                         const config = await res.json();
                         this.devModeEnabled = config.development_mode;
                     } catch (e) {
@@ -461,7 +472,7 @@ PROJECTS
 
                 async streamAnalysis() {
                     try {
-                        const response = await fetch('/api/dev/analyze-stream', {
+                        const response = await fetch(this.basePath + 'api/dev/analyze-stream', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json'

@@ -13,14 +13,14 @@ services:
       - ./logs:/app/logs
       # Mount source only if explicitly needed for dev (overridden in override file usually, but keeping simple here as base)
     ports:
-      - "${PORT:-8000}:8000"
+      - "${PORT:-22000}:22000"
     env_file:
       - .env
     depends_on:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:22000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3

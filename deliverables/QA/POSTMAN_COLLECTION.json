@@ -1,0 +1,93 @@
+{
+    "info": {
+        "_postman_id": "resume-shortlisting-agent-v1",
+        "name": "Resume Shortlisting Agent API",
+        "description": "API collection for Task B: AI-Powered Resume Shortlisting Agent",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Shortlist Resume (Main)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"resume_text\": \"John Doe\\nSoftware Engineer\\nSkills: Python, React, AWS, Docker.\",\n    \"job_description\": \"Looking for a Senior Software Engineer with experience in Python, Django, React, and deployment on AWS.\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:8000/api/shortlist",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "8000",
+                    "path": [
+                        "api",
+                        "shortlist"
+                    ]
+                },
+                "description": "Main endpoint for Task B. Accepts resume and JD, returns decision and JSON reasoning."
+            },
+            "response": []
+        },
+        {
+            "name": "Hybrid Analyze (Dev)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"resume_text\": \"Jane Smith\\nData Scientist\\nSkills: Python, Pandas, Scikit-learn.\",\n    \"job_description\": \"Data Scientist role requiring Python, ML libraries, and SQL.\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:8000/api/dev/hybrid-analyze",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "8000",
+                    "path": [
+                        "api",
+                        "dev",
+                        "hybrid-analyze"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Health Check",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "http://localhost:8000/api/dev/status",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "8000",
+                    "path": [
+                        "api",
+                        "dev",
+                        "status"
+                    ]
+                }
+            },
+            "response": []
+        }
+    ]
+}
