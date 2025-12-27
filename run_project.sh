@@ -115,10 +115,102 @@ python -m spacy download en_core_web_sm -q
 log "Python dependencies installed"
 
 # ==============================================================================
-# STEP 5: CONFIGURE ENVIRONMENT
+# STEP 5: SETUP OLLAMA & PRE-WARM GEMMA MODEL
 # ==============================================================================
 divider
-info "Step 5/7: Configuring environment..."
+info "Step 5/8: Setting up Ollama and pre-warming Gemma model..."
+
+# Check if Ollama is already running (e.g., from Task 1)
+OLLAMA_PORT=11434
+OLLAMA_RUNNING=false
+
+if curl -s "http://localhost:${OLLAMA_PORT}/api/tags" > /dev/null 2>&1; then
+    log "Ollama already running on port ${OLLAMA_PORT} (likely from another task)"
+    OLLAMA_RUNNING=true
+else
+    warn "Ollama not detected - installing and starting..."
+    
+    # Check if ollama is installed
+    if ! command -v ollama &> /dev/null; then
+        info "Installing Ollama..."
+        curl -fsSL https://ollama.ai/install.sh | sh
+        log "Ollama installed successfully"
+    fi
+    
+    # Start Ollama service in background
+    info "Starting Ollama service..."
+    
+    # Create systemd service for Ollama if not exists
+    if [ ! -f "/etc/systemd/system/ollama.service" ]; then
+        cat > /etc/systemd/system/ollama.service <<OLLAMA_EOF
+[Unit]
+Description=Ollama LLM Service
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/ollama serve
+Restart=always
+RestartSec=3
+Environment="OLLAMA_HOST=127.0.0.1"
+
+[Install]
+WantedBy=multi-user.target
+OLLAMA_EOF
+        systemctl daemon-reload
+    fi
+    
+    systemctl enable ollama
+    systemctl start ollama
+    
+    # Wait for Ollama to be ready
+    info "Waiting for Ollama to start..."
+    MAX_WAIT=30
+    WAIT_COUNT=0
+    while ! curl -s "http://localhost:${OLLAMA_PORT}/api/tags" > /dev/null 2>&1; do
+        sleep 1
+        WAIT_COUNT=$((WAIT_COUNT + 1))
+        if [ $WAIT_COUNT -ge $MAX_WAIT ]; then
+            error "Ollama failed to start within ${MAX_WAIT}s. Check: journalctl -u ollama -f"
+        fi
+    done
+    OLLAMA_RUNNING=true
+    log "Ollama service started"
+fi
+
+# Pull and pre-warm Gemma 3 1B model for fast inference
+PREFERRED_MODEL="gemma3:1b"
+
+if [ "$OLLAMA_RUNNING" = true ]; then
+    # Check if model is already pulled
+    if curl -s "http://localhost:${OLLAMA_PORT}/api/tags" | grep -q "gemma3:1b"; then
+        log "Model ${PREFERRED_MODEL} already available"
+    else
+        info "Pulling ${PREFERRED_MODEL} model (this may take a few minutes)..."
+        ollama pull ${PREFERRED_MODEL}
+        log "Model ${PREFERRED_MODEL} pulled successfully"
+    fi
+    
+    # Pre-warm the model by sending a minimal request
+    # This loads the model into RAM, preventing cold-start delays on first real request
+    info "Pre-warming ${PREFERRED_MODEL} model (loading into RAM)..."
+    curl -s -X POST "http://localhost:${OLLAMA_PORT}/api/generate" \
+        -H "Content-Type: application/json" \
+        -d "{\"model\": \"${PREFERRED_MODEL}\", \"prompt\": \"Hello\", \"stream\": false, \"options\": {\"num_predict\": 1}}" \
+        > /dev/null 2>&1
+    
+    if [ $? -eq 0 ]; then
+        log "Model ${PREFERRED_MODEL} warmed up and ready for instant inference"
+    else
+        warn "Model warmup may have failed, but service will continue"
+    fi
+fi
+
+# ==============================================================================
+# STEP 6: CONFIGURE ENVIRONMENT
+# ==============================================================================
+divider
+info "Step 6/8: Configuring environment..."
 
 # Create .env if not exists
 if [ ! -f ".env" ]; then
@@ -141,16 +233,25 @@ else
     log "Updated existing .env with port ${APP_PORT}"
 fi
 
+# Ensure Ollama preferred model is set to the pre-warmed model
+if grep -q "OLLAMA_PREFERRED_MODEL" .env; then
+    sed -i "s|OLLAMA_PREFERRED_MODEL=.*|OLLAMA_PREFERRED_MODEL=\"${PREFERRED_MODEL}\"|" .env
+else
+    echo "OLLAMA_PREFERRED_MODEL=\"${PREFERRED_MODEL}\"" >> .env
+fi
+log "Configured Ollama preferred model: ${PREFERRED_MODEL}"
+
 # ==============================================================================
-# STEP 6: CREATE SYSTEMD SERVICE
+# STEP 7: CREATE SYSTEMD SERVICE
 # ==============================================================================
 divider
-info "Step 6/7: Creating systemd service..."
+info "Step 7/8: Creating systemd service..."
 
 cat > ${SERVICE_FILE} << EOF
 [Unit]
 Description=Resha - AI Resume Shortlisting Agent
-After=network.target
+After=network.target ollama.service
+Wants=ollama.service
 
 [Service]
 Type=simple
@@ -179,10 +280,10 @@ else
 fi
 
 # ==============================================================================
-# STEP 7: CONFIGURE NGINX
+# STEP 8: CONFIGURE NGINX
 # ==============================================================================
 divider
-info "Step 7/7: Configuring Nginx for ${BASE_PATH}/..."
+info "Step 8/8: Configuring Nginx for ${BASE_PATH}/..."
 
 # Create backup if config exists
 if [ -f "$NGINX_CONF" ]; then

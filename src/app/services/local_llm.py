@@ -174,16 +174,45 @@ class OllamaClient:
         """
         Warmup a model by sending a minimal request.
         This loads the model into memory, preventing cold-start delays on real requests.
+        
+        If the model is already warm (e.g., pre-warmed by run_project.sh), this will
+        detect the fast response and skip re-initialization.
         """
         if model_name in self._warmed_up_models:
-            logger.debug(f"Model {model_name} already warmed up")
+            logger.debug(f"Model {model_name} already marked as warmed up in this session")
             return True
         
         try:
-            logger.info(f"Warming up model: {model_name} (loading into memory...)")
             start_time = time.time()
             
-            # Send a minimal request to load the model
+            # First, do a quick ping to check if model is ALREADY warm in Ollama
+            # If model responds in < 3s, it's already loaded in RAM (pre-warmed)
+            QUICK_TIMEOUT = 5.0  # Quick check timeout
+            
+            try:
+                async with httpx.AsyncClient(timeout=QUICK_TIMEOUT) as client:
+                    response = await client.post(
+                        f"{self.base_url}/api/generate",
+                        json={
+                            "model": model_name,
+                            "prompt": "Hi",
+                            "stream": False,
+                            "options": {"num_predict": 1}
+                        }
+                    )
+                    if response.status_code == 200:
+                        elapsed = time.time() - start_time
+                        self._warmed_up_models.add(model_name)
+                        if elapsed < 3.0:
+                            logger.info(f"Model {model_name} already warm (responded in {elapsed:.1f}s) - reusing existing session")
+                        else:
+                            logger.info(f"Model {model_name} warmed up in {elapsed:.1f}s")
+                        return True
+            except httpx.TimeoutException:
+                # Model is cold (took too long), need full warmup
+                logger.info(f"Model {model_name} is cold, performing full warmup (loading into RAM)...")
+            
+            # Full warmup with extended timeout for cold model
             async with httpx.AsyncClient(timeout=self.INFERENCE_TIMEOUT) as client:
                 response = await client.post(
                     f"{self.base_url}/api/generate",
@@ -197,7 +226,7 @@ class OllamaClient:
                 if response.status_code == 200:
                     elapsed = time.time() - start_time
                     self._warmed_up_models.add(model_name)
-                    logger.info(f"Model {model_name} warmed up in {elapsed:.1f}s")
+                    logger.info(f"Model {model_name} fully warmed up in {elapsed:.1f}s")
                     return True
                 else:
                     logger.warning(f"Warmup failed for {model_name}: HTTP {response.status_code}")
@@ -372,43 +401,52 @@ Be thorough, objective, and consistent in your evaluation."""
         ]
     
     async def initialize(self) -> bool:
-        """Initialize the local LLM service and detect available models."""
+        """
+        Initialize the local LLM service and detect available models.
+        
+        NOTE: Model warmup is handled by run_project.sh during deployment.
+        The model is already loaded in Ollama's RAM, so we just detect it
+        and start using it directly - no warmup delays.
+        """
         if self._initialized:
             return True
             
         is_available = await self.ollama.check_health()
         
         if is_available:
-            # Find the best available model
+            # Find the best available model (should be pre-warmed from deployment)
             for model in self.model_priority:
                 if any(model in m for m in self.ollama.available_models):
                     self._preferred_model = model
-                    logger.info(f"Selected local LLM model: {self._preferred_model}")
+                    # Mark as already warmed - run_project.sh pre-warms during deployment
+                    self.ollama._warmed_up_models.add(model)
+                    logger.info(f"Using pre-warmed model: {self._preferred_model} (ready for instant inference)")
                     break
             
             if not self._preferred_model and self.ollama.available_models:
                 # Use first available model if none from priority list
                 self._preferred_model = self.ollama.available_models[0]
+                self.ollama._warmed_up_models.add(self._preferred_model)
                 logger.info(f"Using fallback model: {self._preferred_model}")
             
             self._initialized = True
-            
-            # Warmup the model in the background to preload into RAM
-            # This prevents cold-start delays on the first real request
-            if self._preferred_model:
-                asyncio.create_task(self._warmup_model_async())
-            
             return True
         
         logger.warning("Local LLM service not available - Ollama not running")
         return False
     
     async def _warmup_model_async(self):
-        """Warmup model in background."""
+        """
+        Manual warmup (only used if explicitly requested via API).
+        
+        In normal operation, run_project.sh pre-warms the model during deployment,
+        so this method is rarely needed.
+        """
         try:
+            logger.info(f"Manual warmup requested for {self._preferred_model}...")
             await self.ollama.warmup_model(self._preferred_model)
         except Exception as e:
-            logger.warning(f"Background warmup failed: {e}")
+            logger.warning(f"Manual warmup failed: {e}")
     
     @property
     def is_available(self) -> bool:
@@ -655,12 +693,14 @@ Show your reasoning process, then provide the JSON output."""
     async def get_service_status(self) -> Dict[str, Any]:
         """Get the current status of the local LLM service."""
         is_available = await self.ollama.check_health()
+        model_is_warm = self._preferred_model in self.ollama._warmed_up_models if self._preferred_model else False
         
         return {
             "service": "local_llm",
             "available": is_available,
             "backend": "ollama",
             "preferred_model": self._preferred_model,
+            "model_ready": model_is_warm,
             "available_models": self.ollama.available_models,
             "warmed_up_models": list(self.ollama._warmed_up_models),
             "model_priority": self.model_priority,
@@ -672,7 +712,8 @@ Show your reasoning process, then provide the JSON output."""
                 "offline_capable",
                 "data_privacy",
                 "response_caching",
-                "model_warmup"
+                "model_warmup",
+                "pre_warmed_reuse"  # Reuses pre-warmed model from run_project.sh
             ]
         }
     
