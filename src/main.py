@@ -99,6 +99,31 @@ def create_app() -> FastAPI:
         
         return await call_next(request)
 
+    # Startup event - warmup LLM model
+    @app.on_event("startup")
+    async def startup_warmup():
+        """
+        Warmup the local LLM on startup to prevent cold-start delays.
+        This runs in the background and doesn't block the startup.
+        """
+        import asyncio
+        from .app.services.local_llm import local_llm
+        
+        async def warmup_background():
+            try:
+                logger.info("🔥 Starting LLM warmup in background...")
+                result = await local_llm.warmup()
+                if result.get("success"):
+                    logger.info(f"✅ LLM warmup complete: {result.get('message')}")
+                else:
+                    logger.warning(f"⚠️ LLM warmup skipped: {result.get('error', 'Unknown error')}")
+            except Exception as e:
+                logger.warning(f"⚠️ LLM warmup failed (non-fatal): {e}")
+        
+        # Run warmup in background (don't block startup)
+        asyncio.create_task(warmup_background())
+        logger.info("📊 Background LLM warmup scheduled")
+
     # Routes
     app.include_router(api_router, prefix="/api")
 

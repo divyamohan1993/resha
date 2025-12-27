@@ -155,7 +155,32 @@ curl -X POST https://reas.dmj.one/task2/api/analyze \
 | **Gemma 2B** | ~1.5GB | ★★★★★ | ★★★☆☆ | `ollama pull gemma:2b` |
 | **TinyLlama** | ~700MB | ★★★★★ | ★★☆☆☆ | `ollama pull tinyllama` |
 
----
+### ⚡ Performance Optimizations
+
+Resha includes several optimizations to prevent timeout issues with slow CPU-based Ollama inference:
+
+| Feature | Description |
+|---------|-------------|
+| **Model Warmup** | Automatically preloads model into RAM on startup |
+| **Response Caching** | LRU cache for repeated analyses (instant response) |
+| **Extended Timeouts** | 5-minute timeout for slow CPU inference |
+| **SSE Streaming** | Disabled buffering for real-time chain-of-thought |
+
+**Warmup & Cache Endpoints:**
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/dev/warmup` | POST | Manually warmup LLM model |
+| `/api/dev/cache` | GET | View cache status |
+| `/api/dev/cache` | DELETE | Clear cache |
+
+**Troubleshooting Slow Responses:**
+```bash
+# If experiencing timeouts, run the fix script:
+sudo bash fix_ollama_timeout.sh
+
+# Or manually warmup the model:
+curl -X POST https://reas.dmj.one/task2/api/dev/warmup
+```
 
 ## 📊 Architecture
 

@@ -224,12 +224,16 @@ TASK2_BLOCK='
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
         
-        # Timeout settings
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
+        # Extended timeout settings for Ollama LLM inference (CPU can be slow)
+        proxy_connect_timeout 300s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
         
-        # Buffer settings
+        # Disable buffering for Server-Sent Events (SSE) streaming
+        proxy_buffering off;
+        proxy_cache off;
+        
+        # Buffer settings for large responses
         proxy_buffer_size 128k;
         proxy_buffers 4 256k;
         proxy_busy_buffers_size 256k;

@@ -11,6 +11,8 @@ Key Features:
 2. Dynamic chain-of-thought streaming (real LLM output, not simulated)
 3. Multiple model support with automatic fallback
 4. Data privacy: no data leaves the local environment
+5. LRU caching for repeated queries (prevents timeout on repeated analyses)
+6. Model warmup on initialization (prevents cold-start delays)
 
 Recommended Models (sorted by size/speed):
 - Phi-3 Mini (3.8B): Best quality/speed ratio for most tasks
@@ -23,12 +25,71 @@ import os
 import json
 import asyncio
 import httpx
+import hashlib
 from typing import Dict, Any, Optional, AsyncGenerator, List
 from dataclasses import dataclass
 from enum import Enum
+from functools import lru_cache
+from collections import OrderedDict
+import time
 from ..core.logging import get_logger
 
 logger = get_logger(__name__)
+
+# ============================================================================
+# LRU Response Cache for LLM responses
+# ============================================================================
+class LLMResponseCache:
+    """Thread-safe LRU cache for LLM responses to prevent repeated slow queries."""
+    
+    def __init__(self, max_size: int = 100, ttl_seconds: int = 3600):
+        self._cache: OrderedDict = OrderedDict()
+        self._max_size = max_size
+        self._ttl = ttl_seconds
+        self._lock = asyncio.Lock()
+    
+    def _hash_inputs(self, resume_text: str, job_description: str) -> str:
+        """Create a hash key from inputs."""
+        combined = f"{resume_text[:2000]}|{job_description[:1000]}"  # Limit for performance
+        return hashlib.md5(combined.encode()).hexdigest()
+    
+    async def get(self, resume_text: str, job_description: str) -> Optional[Dict[str, Any]]:
+        """Get cached response if available and not expired."""
+        key = self._hash_inputs(resume_text, job_description)
+        async with self._lock:
+            if key in self._cache:
+                entry = self._cache[key]
+                if time.time() - entry['timestamp'] < self._ttl:
+                    # Move to end (most recently used)
+                    self._cache.move_to_end(key)
+                    logger.info(f"Cache HIT for LLM query (key: {key[:8]}...)")
+                    return entry['response']
+                else:
+                    # Expired, remove it
+                    del self._cache[key]
+        return None
+    
+    async def set(self, resume_text: str, job_description: str, response: Dict[str, Any]):
+        """Cache a response."""
+        key = self._hash_inputs(resume_text, job_description)
+        async with self._lock:
+            # Remove oldest if at capacity
+            while len(self._cache) >= self._max_size:
+                self._cache.popitem(last=False)
+            
+            self._cache[key] = {
+                'response': response,
+                'timestamp': time.time()
+            }
+            logger.debug(f"Cached LLM response (key: {key[:8]}...)")
+    
+    def clear(self):
+        """Clear the cache."""
+        self._cache.clear()
+
+
+# Global cache instance
+_llm_cache = LLMResponseCache(max_size=100, ttl_seconds=3600)
 
 
 class LocalModelType(Enum):
@@ -58,12 +119,18 @@ class OllamaClient:
     - Automatic model download/management
     - Optimized for CPU inference
     - Support for quantized models (GGUF format)
+    - Model warmup to prevent cold-start delays
     """
+    
+    # Extended timeout for CPU inference (first request loads model into RAM)
+    INFERENCE_TIMEOUT = 300.0  # 5 minutes for slow CPU inference
+    STREAM_TIMEOUT = httpx.Timeout(connect=60.0, read=300.0, write=60.0, pool=60.0)
     
     def __init__(self, base_url: str = "http://localhost:11434"):
         self.base_url = base_url
         self._available_models: List[str] = []
         self._is_available = False
+        self._warmed_up_models: set = set()  # Track warmed up models
         
     async def check_health(self) -> bool:
         """Check if Ollama service is running."""
@@ -103,6 +170,42 @@ class OllamaClient:
             logger.error(f"Failed to pull model {model_name}: {e}")
             return False
     
+    async def warmup_model(self, model_name: str) -> bool:
+        """
+        Warmup a model by sending a minimal request.
+        This loads the model into memory, preventing cold-start delays on real requests.
+        """
+        if model_name in self._warmed_up_models:
+            logger.debug(f"Model {model_name} already warmed up")
+            return True
+        
+        try:
+            logger.info(f"Warming up model: {model_name} (loading into memory...)")
+            start_time = time.time()
+            
+            # Send a minimal request to load the model
+            async with httpx.AsyncClient(timeout=self.INFERENCE_TIMEOUT) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/generate",
+                    json={
+                        "model": model_name,
+                        "prompt": "Hello",
+                        "stream": False,
+                        "options": {"num_predict": 1}  # Generate just 1 token
+                    }
+                )
+                if response.status_code == 200:
+                    elapsed = time.time() - start_time
+                    self._warmed_up_models.add(model_name)
+                    logger.info(f"Model {model_name} warmed up in {elapsed:.1f}s")
+                    return True
+                else:
+                    logger.warning(f"Warmup failed for {model_name}: HTTP {response.status_code}")
+                    return False
+        except Exception as e:
+            logger.warning(f"Warmup failed for {model_name}: {e}")
+            return False
+    
     async def generate(
         self,
         model: str,
@@ -127,7 +230,7 @@ class OllamaClient:
             if system:
                 payload["system"] = system
             
-            async with httpx.AsyncClient(timeout=120.0) as client:
+            async with httpx.AsyncClient(timeout=self.INFERENCE_TIMEOUT) as client:
                 response = await client.post(
                     f"{self.base_url}/api/generate",
                     json=payload
@@ -165,7 +268,7 @@ class OllamaClient:
             if system:
                 payload["system"] = system
             
-            async with httpx.AsyncClient(timeout=120.0) as client:
+            async with httpx.AsyncClient(timeout=self.STREAM_TIMEOUT) as client:
                 async with client.stream(
                     "POST",
                     f"{self.base_url}/api/generate",
@@ -289,10 +392,23 @@ Be thorough, objective, and consistent in your evaluation."""
                 logger.info(f"Using fallback model: {self._preferred_model}")
             
             self._initialized = True
+            
+            # Warmup the model in the background to preload into RAM
+            # This prevents cold-start delays on the first real request
+            if self._preferred_model:
+                asyncio.create_task(self._warmup_model_async())
+            
             return True
         
         logger.warning("Local LLM service not available - Ollama not running")
         return False
+    
+    async def _warmup_model_async(self):
+        """Warmup model in background."""
+        try:
+            await self.ollama.warmup_model(self._preferred_model)
+        except Exception as e:
+            logger.warning(f"Background warmup failed: {e}")
     
     @property
     def is_available(self) -> bool:
@@ -373,7 +489,14 @@ Show your reasoning process, then provide the JSON output."""
         Evaluate a resume against a job description using local LLM.
         
         Returns structured analysis with decision and reasoning.
+        Uses LRU cache to prevent repeated slow queries.
         """
+        # Check cache first for instant response
+        cached = await _llm_cache.get(resume_text, job_description)
+        if cached is not None:
+            cached['from_cache'] = True
+            return cached
+        
         if not await self.initialize():
             return {
                 "decision": "Error",
@@ -413,6 +536,9 @@ Show your reasoning process, then provide the JSON output."""
             if result.get("decision") not in ["Shortlisted", "Rejected"]:
                 match_pct = result.get("match_percentage", 0)
                 result["decision"] = "Shortlisted" if match_pct >= 70 else "Rejected"
+            
+            # Cache successful result for future requests
+            await _llm_cache.set(resume_text, job_description, result)
             
             return result
             
@@ -536,15 +662,50 @@ Show your reasoning process, then provide the JSON output."""
             "backend": "ollama",
             "preferred_model": self._preferred_model,
             "available_models": self.ollama.available_models,
+            "warmed_up_models": list(self.ollama._warmed_up_models),
             "model_priority": self.model_priority,
+            "cache_size": len(_llm_cache._cache),
+            "cache_max_size": _llm_cache._max_size,
             "features": [
                 "cpu_only_inference",
                 "real_streaming_cot",
                 "offline_capable",
-                "data_privacy"
+                "data_privacy",
+                "response_caching",
+                "model_warmup"
             ]
         }
+    
+    async def warmup(self) -> Dict[str, Any]:
+        """
+        Manually trigger model warmup.
+        Call this endpoint on startup or when you expect slow responses.
+        """
+        if not await self.initialize():
+            return {
+                "success": False,
+                "error": "Local LLM not available"
+            }
+        
+        if self._preferred_model:
+            success = await self.ollama.warmup_model(self._preferred_model)
+            return {
+                "success": success,
+                "model": self._preferred_model,
+                "message": f"Model {self._preferred_model} {'warmed up' if success else 'warmup failed'}"
+            }
+        
+        return {
+            "success": False,
+            "error": "No model available"
+        }
+    
+    def clear_cache(self):
+        """Clear the response cache."""
+        _llm_cache.clear()
+        return {"message": "Cache cleared", "new_size": 0}
 
 
 # Singleton instance
 local_llm = LocalLLMService()
+

@@ -1404,3 +1404,65 @@ async def hybrid_stream_analysis(request: Request, request_data: ShortlistReques
     )
 
 
+# =============================================================================
+# LLM WARMUP AND CACHE MANAGEMENT ENDPOINTS
+# =============================================================================
+
+@router.post("/dev/warmup")
+async def warmup_llm():
+    """
+    Warmup the local LLM by preloading the model into RAM.
+    
+    Call this endpoint:
+    - After service restart
+    - Before expecting heavy traffic
+    - When you notice slow first requests
+    
+    This sends a minimal request to Ollama to load the model into memory,
+    preventing cold-start delays on real analysis requests.
+    
+    Returns:
+        Success status and warmup details
+    """
+    logger.info("Received warmup request")
+    try:
+        result = await local_llm.warmup()
+        return result
+    except Exception as e:
+        logger.error(f"Warmup failed: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/dev/cache")
+async def get_cache_status():
+    """
+    Get LLM response cache status.
+    
+    Shows:
+    - Current cache size
+    - Maximum cache capacity
+    - Cache hit/miss statistics
+    """
+    status = await local_llm.get_service_status()
+    return {
+        "cache_size": status.get("cache_size", 0),
+        "cache_max_size": status.get("cache_max_size", 100),
+        "warmed_up_models": status.get("warmed_up_models", []),
+        "message": "Cache is active. Repeated analyses will be served instantly from cache."
+    }
+
+
+@router.delete("/dev/cache")
+async def clear_cache():
+    """
+    Clear the LLM response cache.
+    
+    Use this when:
+    - You want fresh analysis results
+    - Cache data is stale
+    - Testing or debugging
+    """
+    logger.info("Clearing LLM cache")
+    result = local_llm.clear_cache()
+    return result
+
