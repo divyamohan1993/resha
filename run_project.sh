@@ -184,64 +184,32 @@ fi
 divider
 info "Step 7/7: Configuring Nginx for ${BASE_PATH}/..."
 
-# Check if nginx config exists and has task1 location
+# Create backup if config exists
 if [ -f "$NGINX_CONF" ]; then
-    # Check if task2 location already exists
-    if grep -q "location ${BASE_PATH}/" "$NGINX_CONF"; then
-        warn "task2 location already exists in nginx config. Updating..."
-        # Create backup
-        cp "$NGINX_CONF" "${NGINX_CONF}.backup.$(date +%s)"
-        
-        # Remove existing task2 block and add new one
-        # Use sed to remove the task2 location block
-        sed -i "/location \\${BASE_PATH}\\//,/^    }/d" "$NGINX_CONF"
-    fi
-    
-    # Insert task2 location before the closing server brace
-    # Find the line number of the last closing brace and insert before it
-    TASK2_BLOCK="
-    # ════════════════════════════════════════════════════════════
-    # Task 2: Resha - AI Resume Shortlisting Agent
-    # ════════════════════════════════════════════════════════════
-    location ${BASE_PATH}/ {
-        proxy_pass http://127.0.0.1:${APP_PORT}/;
-        proxy_set_header Host \\\$host;
-        proxy_set_header X-Real-IP \\\$remote_addr;
-        proxy_set_header X-Forwarded-For \\\$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \\\$scheme;
-        proxy_set_header X-Script-Name ${BASE_PATH};
-        
-        # WebSocket support
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \\\$http_upgrade;
-        proxy_set_header Connection \"upgrade\";
-        
-        # Timeout settings
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
-        
-        # Buffer settings
-        proxy_buffer_size 128k;
-        proxy_buffers 4 256k;
-        proxy_busy_buffers_size 256k;
-    }
-"
-    
-    # Insert before the last closing brace
-    sed -i "/^}/i\\${TASK2_BLOCK}" "$NGINX_CONF"
-    
-else
-    # Create new nginx config file
-    cat > "$NGINX_CONF" << 'NGINXEOF'
-server {
-    listen 80;
-    server_name reas.dmj.one;
-    
-    client_max_body_size 50M;
+    cp "$NGINX_CONF" "${NGINX_CONF}.backup.$(date +%s)"
+    log "Created nginx config backup"
+fi
 
+# Remove conflicting Task1 nginx config if it exists
+# Task1 creates its own config at /etc/nginx/sites-available/realtyassistant
+# We need to consolidate into reas.dmj.one
+TASK1_OLD_CONF="/etc/nginx/sites-available/realtyassistant"
+TASK1_OLD_ENABLED="/etc/nginx/sites-enabled/realtyassistant"
+
+if [ -f "$TASK1_OLD_ENABLED" ] || [ -L "$TASK1_OLD_ENABLED" ]; then
+    # Read Task1's config before removing
+    if [ -f "$TASK1_OLD_CONF" ]; then
+        PRESERVE_TASK1=true
+        warn "Found separate Task1 nginx config - will merge into unified config"
+    fi
+    rm -f "$TASK1_OLD_ENABLED"
+fi
+
+# Create the task2 block content
+TASK2_BLOCK='
     # ════════════════════════════════════════════════════════════
     # Task 2: Resha - AI Resume Shortlisting Agent
+    # Port: 22000
     # ════════════════════════════════════════════════════════════
     location /task2/ {
         proxy_pass http://127.0.0.1:22000/;
@@ -266,9 +234,128 @@ server {
         proxy_buffers 4 256k;
         proxy_busy_buffers_size 256k;
     }
+'
+
+# Use Python to safely modify the nginx config (avoids sed escaping issues)
+python3 << PYEOF
+import re
+import os
+
+nginx_conf = "$NGINX_CONF"
+task2_block = '''$TASK2_BLOCK'''
+
+# Task1 location block (in case we need to create a new unified config)
+task1_block = '''
+    # ════════════════════════════════════════════════════════════
+    # Task 1: RealtyAssistant AI Agent (Chat/Voice)
+    # Port: 20000
+    # ════════════════════════════════════════════════════════════
+    location /task1/ {
+        proxy_pass http://127.0.0.1:20000/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Prefix /task1;
+        proxy_read_timeout 86400;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_redirect / /task1/;
+        proxy_buffer_size 128k;
+        proxy_buffers 4 256k;
+        proxy_busy_buffers_size 256k;
+    }
+
+    location /task1/static/ {
+        proxy_pass http://127.0.0.1:20000/static/;
+        proxy_set_header Host \$host;
+        expires 7d;
+    }
+
+    location = /task1/widget.js {
+        proxy_pass http://127.0.0.1:20000/widget.js;
+        proxy_set_header Host \$host;
+        expires 1d;
+    }
+
+    location = /task1 {
+        return 301 /task1/demo;
+    }
+'''
+
+# Check if config file exists
+if os.path.exists(nginx_conf):
+    with open(nginx_conf, 'r') as f:
+        content = f.read()
+    
+    # Check if task1 location exists
+    has_task1 = '/task1/' in content
+    
+    # Remove existing task2 location block if present
+    # Pattern matches: location /task2/ { ... } with optional comments
+    pattern = r'\s*#[^\n]*Task 2[^\n]*\n(?:\s*#[^\n]*\n)*\s*location\s+/task2/\s*\{[^}]*\}'
+    content = re.sub(pattern, '', content, flags=re.DOTALL)
+    
+    # Also try simpler pattern for just the location block
+    pattern2 = r'\s*location\s+/task2/\s*\{[^}]*\}'
+    content = re.sub(pattern2, '', content, flags=re.DOTALL)
+    
+    # Also remove task2 redirect if present
+    pattern3 = r'\s*location\s*=\s*/task2\s*\{[^}]*\}'
+    content = re.sub(pattern3, '', content, flags=re.DOTALL)
+    
+    # Clean up multiple blank lines
+    content = re.sub(r'\n{3,}', '\n\n', content)
+    
+    # If task1 is missing, add it too
+    if not has_task1:
+        # Find the first location block or after client_max_body_size
+        insert_pos = content.find('location ')
+        if insert_pos == -1:
+            insert_pos = content.find('client_max_body_size')
+            if insert_pos != -1:
+                insert_pos = content.find('\n', insert_pos) + 1
+        if insert_pos != -1:
+            content = content[:insert_pos] + task1_block + '\n' + content[insert_pos:]
+    
+    # Insert task2 block before the final closing brace
+    last_brace = content.rfind('}')
+    if last_brace != -1:
+        content = content[:last_brace] + task2_block + '\n' + content[last_brace:]
+    
+    with open(nginx_conf, 'w') as f:
+        f.write(content)
+    
+    print("Updated existing nginx config with task2 block")
+else:
+    # Create new unified config with BOTH task1 and task2
+    new_config = '''server {
+    listen 80;
+    server_name reas.dmj.one;
+    
+    client_max_body_size 50M;
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+''' + task1_block + task2_block + '''
+
+    # Error pages
+    error_page 502 503 504 /50x.html;
+    location = /50x.html {
+        root /usr/share/nginx/html;
+        internal;
+    }
 }
-NGINXEOF
-fi
+'''
+    with open(nginx_conf, 'w') as f:
+        f.write(new_config)
+    
+    print("Created new nginx config with both task1 and task2 blocks")
+PYEOF
 
 # Enable site if not already enabled
 ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/reas.dmj.one 2>/dev/null || true
